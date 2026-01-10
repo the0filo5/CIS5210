@@ -116,10 +116,12 @@ def no_vowels(text):
     vowels = ['a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U']
     return "".join(x for x in text if x not in vowels)
 
+
 def digits_to_words(text):
     numbers = {'0': 'zero', '1': 'one', '2': 'two', '3': 'three', '4': 'four',
                '5': 'five', '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine'}
     return " ".join(numbers[x] for x in text if x in numbers)
+
 
 def to_mixed_case(name):
     # Obtain words from variable name separated by _
@@ -144,31 +146,80 @@ def to_mixed_case(name):
 class Polynomial(object):
 
     def __init__(self, polynomial):
-        pass
+        self.coefficients = tuple(polynomial)
 
     def get_polynomial(self):
-        pass
+        return self.coefficients
 
     def __neg__(self):
-        pass
+        return Polynomial([(-coef, power) for coef, power in self.coefficients])
 
     def __add__(self, other):
-        pass
+        combined_list = list(self.coefficients)
+        combined_list.extend(other.get_polynomial())
+        return Polynomial(combined_list)  # or return combined_list
 
     def __sub__(self, other):
-        pass
+        return self + (-other)
 
     def __mul__(self, other):
-        pass
+        multiplied_coefficients = []
+        for coef1, power1 in self.coefficients:
+            for coef2, power2 in other.coefficients:
+                multiplied_coefficients.append((coef1 * coef2, power1 + power2))
+        return Polynomial(multiplied_coefficients)
 
     def __call__(self, x):
-        pass
+        if x == 0 and any(power < 0 for _, power in self.coefficients):
+            return ZeroDivisionError("Cannot apply polynomial to zero division")
+        return sum(coef * (x ** power) for coef, power in self.coefficients)
+
+    # sort and return a polynomial in descending power of polynomial element
+    def sort(self):
+        return Polynomial(
+            sorted(self.coefficients, key=lambda term: term[1], reverse=True))
 
     def simplify(self):
-        pass
+        # Create a dictionary by power
+        group_by_power = {}
+        # Create unique list of powers in descending order
+        for coef, power in self.coefficients:
+            group_by_power[power] =  group_by_power.get(power, 0) + coef
+        # iterate through all dict terms and keep ones with non-zero coefs
+        no_zero_terms = [(coef, power) for power, coef in group_by_power.items()
+                         if coef != 0]
+        # Return (0, 0) if no non-zero terms
+        if not no_zero_terms:
+            return Polynomial([(0, 0)])
+        # Return simplified polynomial is descending power order
+        return Polynomial(no_zero_terms.sort(key=lambda t: t[1], reverse=True)
+
 
     def __str__(self):
-        pass
+        # no leading space for sign of first coef
+        lead_space = ''
+        sequence = ''
+        # starts with no operator for first positive coef
+        operator = ''
+        var = 'x'
+        for i, (coef, power) in enumerate(self.coefficients):
+            # if coef negative use - sign
+            if coef < 0:
+                operator = '-'
+            # if power zero then no 'x'
+            if power == 0:
+                var = ''
+            # if power 1 or 0 then no ^ sign and power number
+            if power == 1 or power == 0:
+                sequence += operator + lead_space + f"{abs(coef)}" + var + ' '
+            else:
+                sequence += operator + lead_space + f"{abs(coef)}^{power}" + ' '
+            # reset parameters for next loop
+            lead_space = ' '
+            operator = '+'
+            var = 'x'
+        # return sequence without last trailing space
+        return sequence[:-1]
 
 
 ############################################################
