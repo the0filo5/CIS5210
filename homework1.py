@@ -48,21 +48,22 @@ python_concepts_question_3 = """
     calculates how much memor it needs and allocates it from the beginning.
 """
 
+
 ############################################################
 # Section 2: Working with Lists
 ############################################################
 
 
 def extract_and_apply(lst, p, f):
-    pass
+    return [f(x) for x in lst if p(x)]
 
 
 def concatenate(seqs):
-    pass
+    return [element for sequence in seqs for element in sequence]
 
 
 def transpose(matrix):
-    pass
+    return [[row[j] for row in matrix] for j in range(len(matrix[0]))]
 
 
 ############################################################
@@ -71,15 +72,15 @@ def transpose(matrix):
 
 
 def copy(seq):
-    pass
+    return seq
 
 
 def all_but_last(seq):
-    pass
+    return seq[:-1]
 
 
 def every_other(seq):
-    pass
+    return [seq[i] for i in range(0, len(seq), 2)]
 
 
 ############################################################
@@ -88,15 +89,16 @@ def every_other(seq):
 
 
 def prefixes(seq):
-    pass
+    return [seq[0:i] for i in range(0, len(seq) + 1)]
 
 
 def suffixes(seq):
-    pass
+    return [seq[i:] for i in range(0, len(seq) + 1)]
 
 
 def slices(seq):
-    pass
+    return [seq[j:j + i + 1] for j in range(0, len(seq)) for i in
+            range(0, len(seq) - j)]
 
 
 ############################################################
@@ -105,19 +107,33 @@ def slices(seq):
 
 
 def normalize(text):
-    pass
+    # Set to lowercase
+    # Isolate words between white spaces and join them with ' ' in between
+    return " ".join(text.lower().split())
 
 
 def no_vowels(text):
-    pass
-
+    vowels = ['a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U']
+    return "".join(x for x in text if x not in vowels)
 
 def digits_to_words(text):
-    pass
-
+    numbers = {'0': 'zero', '1': 'one', '2': 'two', '3': 'three', '4': 'four',
+               '5': 'five', '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine'}
+    return " ".join(numbers[x] for x in text if x in numbers)
 
 def to_mixed_case(name):
-    pass
+    # Obtain words from variable name separated by _
+    words = name.replace('_', ' ')
+    words = words.strip().split()
+    # If no words found return empty string
+    if not words:
+        return ""
+    # First word lower character
+    first_word = words[0].lower()
+    # If more than 1 word join the rest capitalised
+    if len(words) > 1:
+        return first_word + "".join(w.capitalize() for w in words[1:])
+    return first_word
 
 
 ############################################################
