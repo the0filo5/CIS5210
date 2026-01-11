@@ -1,13 +1,12 @@
 import numpy
 import nltk
+from nltk.corpus import stopwords
 
 ############################################################
 # CIS 521: Homework 1
 ############################################################
 
 student_name = "Theophilos Constantinidis"
-git
-init
 # This is where your grade report will be sent.
 student_email = "theocon@seas.upenn.edu"
 
@@ -87,19 +86,20 @@ def every_other(seq):
 # Section 4: Combinatorial Algorithms
 ############################################################
 
-
 def prefixes(seq):
-    return [seq[0:i] for i in range(0, len(seq) + 1)]
+    for i in range(0, len(seq) + 1):
+        yield seq[0:i]
 
 
 def suffixes(seq):
-    return [seq[i:] for i in range(0, len(seq) + 1)]
+    for i in range(0, len(seq) + 1):
+        yield seq[i:]
 
 
 def slices(seq):
-    return [seq[j:j + i + 1] for j in range(0, len(seq)) for i in
-            range(0, len(seq) - j)]
-
+    for j in range(0, len(seq)):
+        for i in range(0, len(seq) - j):
+            yield seq[j:j + i + 1]
 
 ############################################################
 # Section 5: Text Processing
@@ -184,7 +184,7 @@ class Polynomial(object):
         group_by_power = {}
         # Create unique list of powers in descending order
         for coef, power in self.coefficients:
-            group_by_power[power] =  group_by_power.get(power, 0) + coef
+            group_by_power[power] = group_by_power.get(power, 0) + coef
         # iterate through all dict terms and keep ones with non-zero coefs
         no_zero_terms = [(coef, power) for power, coef in group_by_power.items()
                          if coef != 0]
@@ -192,8 +192,7 @@ class Polynomial(object):
         if not no_zero_terms:
             return Polynomial([(0, 0)])
         # Return simplified polynomial is descending power order
-        return Polynomial(no_zero_terms.sort(key=lambda t: t[1], reverse=True)
-
+        return Polynomial(no_zero_terms.sort(key=lambda t: t[1], reverse=True))
 
     def __str__(self):
         # no leading space for sign of first coef
@@ -209,11 +208,15 @@ class Polynomial(object):
             # if power zero then no 'x'
             if power == 0:
                 var = ''
+            coefficient = f"{abs(coef)}"
+            # if coefficient = 1 and power not 0, then no 1
+            if abs(coef) == 1 and power != 0:
+                coefficient = ""
             # if power 1 or 0 then no ^ sign and power number
             if power == 1 or power == 0:
-                sequence += operator + lead_space + f"{abs(coef)}" + var + ' '
+                sequence += operator + lead_space + f"{coefficient}{var} "
             else:
-                sequence += operator + lead_space + f"{abs(coef)}^{power}" + ' '
+                sequence += operator + lead_space + f"{coefficient}{var}^{power} "
             # reset parameters for next loop
             lead_space = ' '
             operator = '+'
@@ -226,13 +229,29 @@ class Polynomial(object):
 # Section 7: Python Packages
 ############################################################
 
+import numpy as np
+
 
 def sort_array(list_of_matrices):
-    pass
+    return np.array(sorted([int(elem) for matrix in list_of_matrices
+                            for elem in matrix.flatten()],
+                           reverse=True)
+                    )
 
+
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('punkt_tab')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('averaged_perceptron_tagger_eng')
 
 def POS_tag(sentence):
-    pass
+    list_tokens = nltk.word_tokenize(sentence)
+    list_words = [w.lower() for w in list_tokens if w.lower() not in stopwords.words('english')
+                 and w not in "!""#$%&'()*+,-./:;<=>?@[\]^_`{|}~"]
+    return nltk.pos_tag(list_words)
+
 
 
 ############################################################
@@ -242,19 +261,15 @@ def POS_tag(sentence):
 
 # Just an approximation is fine.
 feedback_question_1 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+5 hours
 """
 
 feedback_question_2 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+The most challenging without being necessarily difficult was converting
+loops into single list comprehensions and generators.
 """
 
 feedback_question_3 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+Single list comprehensions.  
+No would not change anything.
 """
