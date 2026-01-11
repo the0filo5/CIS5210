@@ -79,7 +79,7 @@ def transpose(matrix):
 
 
 def copy(seq):
-    return seq.copy()
+    return seq[:]
 
 
 def all_but_last(seq):
