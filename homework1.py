@@ -203,7 +203,7 @@ class Polynomial(object):
             return Polynomial([(0, 0)])
         # Return simplified polynomial is descending power order
         no_zero_terms.sort(key=lambda t: t[1], reverse=True)
-        self.coefficients = no_zero_terms
+        self.coefficients = tuple(no_zero_terms)
 
     def __str__(self):
         # no leading space for sign of first coef
