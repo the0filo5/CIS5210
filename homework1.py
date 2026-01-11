@@ -1,11 +1,13 @@
 import numpy as np
 import nltk
+from nltk.corpus import stopwords
+
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('punkt_tab')
 nltk.download('averaged_perceptron_tagger')
 nltk.download('averaged_perceptron_tagger_eng')
-from nltk.corpus import stopwords
+
 ############################################################
 # CIS 521: Homework 1
 ############################################################
@@ -19,14 +21,14 @@ student_email = "theocon@seas.upenn.edu"
 ############################################################
 
 python_concepts_question_1 = """
-    Dynamically typed means that variable types are defined during run-time 
+    Dynamically typed means that variable types are defined during run-time
     and don't need to be pre-defined.
     Also it means their type can be changed during run-time as well.
     Examples:
     myVar = 9
     myVar = "nine"
-    
-    Strongly typed means that python wont allow operations between 
+
+    Strongly typed means that python wont allow operations between
     by silently converting incompatible types in most cases."
     Examples:
     myVar1 = 9
@@ -36,20 +38,20 @@ python_concepts_question_1 = """
 """
 
 python_concepts_question_2 = """
-    The keys of a dictionary have to be immutable types, 
-    so when they are hashed the hash does not change, suh as strings, 
-    numbers, and tuples.  
+    The keys of a dictionary have to be immutable types,
+    so when they are hashed the hash does not change, suh as strings,
+    numbers, and tuples.
     So a solution would be to convert the lists to tuples and use them as keys
-    
+
     points_to_names = {(0, 0): "home", (1, 2): "school", (-1, 1): "market"}
 """
 
 python_concepts_question_3 = """
     concatenate2 would be faster as it has been implemented in C (CPython) and
-    not in pure python as in the case of the concatenate1 loop.  In python 
-    using += , the string is recreated in every rotation copying and 
-    reallocating memory each time the string grows.  
-    In CPython the implementation first calculates how much memor 
+    not in pure python as in the case of the concatenate1 loop.  In python
+    using += , the string is recreated in every rotation copying and
+    reallocating memory each time the string grows.
+    In CPython the implementation first calculates how much memor
     it needs and allocates it from the beginning.
 """
 
@@ -77,7 +79,7 @@ def transpose(matrix):
 
 
 def copy(seq):
-    return seq
+    return seq.copy()
 
 
 def all_but_last(seq):
@@ -85,7 +87,7 @@ def all_but_last(seq):
 
 
 def every_other(seq):
-    return [seq[i] for i in range(0, len(seq), 2)]
+    return seq[::2]
 
 
 ############################################################
@@ -200,7 +202,8 @@ class Polynomial(object):
         if not no_zero_terms:
             return Polynomial([(0, 0)])
         # Return simplified polynomial is descending power order
-        return Polynomial(no_zero_terms.sort(key=lambda t: t[1], reverse=True))
+        no_zero_terms.sort(key=lambda t: t[1], reverse=True)
+        self.coefficients = no_zero_terms
 
     def __str__(self):
         # no leading space for sign of first coef
@@ -243,11 +246,12 @@ def sort_array(list_of_matrices):
                            reverse=True)
                     )
 
+
 def POS_tag(sentence):
     list_tokens = nltk.word_tokenize(sentence)
     list_words = [w.lower() for w in list_tokens if
                   w.lower() not in stopwords.words('english')
-                  and w not in "!""#$%&'()*+,-./:;<=>?@[\]^_`{|}~"]
+                  and w not in "!""#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"]
     return nltk.pos_tag(list_words)
 
 
@@ -267,6 +271,6 @@ loops into single list comprehensions and generators.
 """
 
 feedback_question_3 = """
-Single list comprehensions.  
+Single list comprehensions.
 No would not change anything.
 """
