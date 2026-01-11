@@ -201,9 +201,10 @@ class Polynomial(object):
         # Update (0, 0) if no non-zero terms
         if not no_zero_terms:
             self.coefficients = (0, 0)
-        # Update with simplified polynomial is descending power order
-        no_zero_terms.sort(key=lambda t: t[1], reverse=True)
-        self.coefficients = tuple(no_zero_terms)
+        else:
+            # Update with simplified polynomial is descending power order
+            no_zero_terms.sort(key=lambda t: t[1], reverse=True)
+            self.coefficients = tuple(no_zero_terms)
 
     def __str__(self):
         # no leading space for sign of first coef
