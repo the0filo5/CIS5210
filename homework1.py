@@ -200,7 +200,7 @@ class Polynomial(object):
                          if coef != 0]
         # Update (0, 0) if no non-zero terms
         if not no_zero_terms:
-            self.coefficients = (0, 0)
+            self.coefficients = ((0, 0),)
         else:
             # Update with simplified polynomial is descending power order
             no_zero_terms.sort(key=lambda t: t[1], reverse=True)
@@ -275,3 +275,4 @@ feedback_question_3 = """
 Single list comprehensions.
 No would not change anything.
 """
+
