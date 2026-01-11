@@ -196,7 +196,7 @@ class Polynomial(object):
         for coef, power in self.coefficients:
             group_by_power[power] = group_by_power.get(power, 0) + coef
         # iterate through all dict terms and keep ones with non-zero coefs
-        no_zero_terms = [(round(coef), p) for p, coef in group_by_power.items()
+        no_zero_terms = [(coef, p) for p, coef in group_by_power.items()
                          if coef != 0]
         # Update (0, 0) if no non-zero terms
         if not no_zero_terms:
