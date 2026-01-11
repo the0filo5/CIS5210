@@ -198,10 +198,10 @@ class Polynomial(object):
         # iterate through all dict terms and keep ones with non-zero coefs
         no_zero_terms = [(coef, p) for p, coef in group_by_power.items()
                          if coef != 0]
-        # Return (0, 0) if no non-zero terms
+        # Update (0, 0) if no non-zero terms
         if not no_zero_terms:
-            return Polynomial([(0, 0)])
-        # Return simplified polynomial is descending power order
+            self.coefficients = (0, 0)
+        # Update with simplified polynomial is descending power order
         no_zero_terms.sort(key=lambda t: t[1], reverse=True)
         self.coefficients = tuple(no_zero_terms)
 
