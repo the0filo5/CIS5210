@@ -221,6 +221,8 @@ class Polynomial(object):
             if power == 0:
                 var = ''
             coeff = f"{abs(coef)}"
+            if abs(coef - round(coef)) < 1e-12:
+                coeff = f"{abs(round(coef))}"
             # if coeff = 1 and power not 0, then no 1
             if abs(coef) == 1 and power != 0:
                 coeff = ""
