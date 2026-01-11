@@ -1,7 +1,11 @@
-import numpy
+import numpy as np
 import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('punkt_tab')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('averaged_perceptron_tagger_eng')
 from nltk.corpus import stopwords
-
 ############################################################
 # CIS 521: Homework 1
 ############################################################
@@ -32,8 +36,9 @@ python_concepts_question_1 = """
 """
 
 python_concepts_question_2 = """
-    The keys of a dictionary have to be immutable types, so when they are hashed
-    the hash does not change, suh as strings, numbers, and tuples.  
+    The keys of a dictionary have to be immutable types, 
+    so when they are hashed the hash does not change, suh as strings, 
+    numbers, and tuples.  
     So a solution would be to convert the lists to tuples and use them as keys
     
     points_to_names = {(0, 0): "home", (1, 2): "school", (-1, 1): "market"}
@@ -41,10 +46,11 @@ python_concepts_question_2 = """
 
 python_concepts_question_3 = """
     concatenate2 would be faster as it has been implemented in C (CPython) and
-    not in pure python as in the case of the concatenate1 loop.  In python using
-    += , the string is recreated in every rotation copying and reallocating 
-    memory each time the string grows.  In CPython the implementation first
-    calculates how much memor it needs and allocates it from the beginning.
+    not in pure python as in the case of the concatenate1 loop.  In python 
+    using += , the string is recreated in every rotation copying and 
+    reallocating memory each time the string grows.  
+    In CPython the implementation first calculates how much memor 
+    it needs and allocates it from the beginning.
 """
 
 
@@ -101,6 +107,7 @@ def slices(seq):
         for i in range(0, len(seq) - j):
             yield seq[j:j + i + 1]
 
+
 ############################################################
 # Section 5: Text Processing
 ############################################################
@@ -119,7 +126,8 @@ def no_vowels(text):
 
 def digits_to_words(text):
     numbers = {'0': 'zero', '1': 'one', '2': 'two', '3': 'three', '4': 'four',
-               '5': 'five', '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine'}
+               '5': 'five', '6': 'six', '7': 'seven', '8': 'eight',
+               '9': 'nine'}
     return " ".join(numbers[x] for x in text if x in numbers)
 
 
@@ -152,7 +160,7 @@ class Polynomial(object):
         return self.coefficients
 
     def __neg__(self):
-        return Polynomial([(-coef, power) for coef, power in self.coefficients])
+        return Polynomial([(-coef, p) for coef, p in self.coefficients])
 
     def __add__(self, other):
         combined_list = list(self.coefficients)
@@ -164,14 +172,14 @@ class Polynomial(object):
 
     def __mul__(self, other):
         multiplied_coefficients = []
-        for coef1, power1 in self.coefficients:
-            for coef2, power2 in other.coefficients:
-                multiplied_coefficients.append((coef1 * coef2, power1 + power2))
+        for coef1, pow1 in self.coefficients:
+            for coef2, pow2 in other.coefficients:
+                multiplied_coefficients.append((coef1 * coef2, pow1 + pow2))
         return Polynomial(multiplied_coefficients)
 
     def __call__(self, x):
         if x == 0 and any(power < 0 for _, power in self.coefficients):
-            return ZeroDivisionError("Cannot apply polynomial to zero division")
+            return ZeroDivisionError("Cannot apply polynomial to 0 division")
         return sum(coef * (x ** power) for coef, power in self.coefficients)
 
     # sort and return a polynomial in descending power of polynomial element
@@ -186,7 +194,7 @@ class Polynomial(object):
         for coef, power in self.coefficients:
             group_by_power[power] = group_by_power.get(power, 0) + coef
         # iterate through all dict terms and keep ones with non-zero coefs
-        no_zero_terms = [(coef, power) for power, coef in group_by_power.items()
+        no_zero_terms = [(coef, p) for p, coef in group_by_power.items()
                          if coef != 0]
         # Return (0, 0) if no non-zero terms
         if not no_zero_terms:
@@ -208,15 +216,15 @@ class Polynomial(object):
             # if power zero then no 'x'
             if power == 0:
                 var = ''
-            coefficient = f"{abs(coef)}"
-            # if coefficient = 1 and power not 0, then no 1
+            coeff = f"{abs(coef)}"
+            # if coeff = 1 and power not 0, then no 1
             if abs(coef) == 1 and power != 0:
-                coefficient = ""
+                coeff = ""
             # if power 1 or 0 then no ^ sign and power number
             if power == 1 or power == 0:
-                sequence += operator + lead_space + f"{coefficient}{var} "
+                sequence += operator + lead_space + f"{coeff}{var} "
             else:
-                sequence += operator + lead_space + f"{coefficient}{var}^{power} "
+                sequence += operator + lead_space + f"{coeff}{var}^{power} "
             # reset parameters for next loop
             lead_space = ' '
             operator = '+'
@@ -229,29 +237,18 @@ class Polynomial(object):
 # Section 7: Python Packages
 ############################################################
 
-import numpy as np
-
-
 def sort_array(list_of_matrices):
     return np.array(sorted([int(elem) for matrix in list_of_matrices
                             for elem in matrix.flatten()],
                            reverse=True)
                     )
 
-
-import nltk
-nltk.download('stopwords')
-nltk.download('punkt')
-nltk.download('punkt_tab')
-nltk.download('averaged_perceptron_tagger')
-nltk.download('averaged_perceptron_tagger_eng')
-
 def POS_tag(sentence):
     list_tokens = nltk.word_tokenize(sentence)
-    list_words = [w.lower() for w in list_tokens if w.lower() not in stopwords.words('english')
-                 and w not in "!""#$%&'()*+,-./:;<=>?@[\]^_`{|}~"]
+    list_words = [w.lower() for w in list_tokens if
+                  w.lower() not in stopwords.words('english')
+                  and w not in "!""#$%&'()*+,-./:;<=>?@[\]^_`{|}~"]
     return nltk.pos_tag(list_words)
-
 
 
 ############################################################
