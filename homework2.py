@@ -95,12 +95,12 @@ class LightsOutPuzzle(object):
         return self.board
 
     def perform_move(self, row, col):
-        self.board[row][col] = ~self.board[row][col]
-        for row_off, col_off in [[-1, 0], [0, 1], [1, 0], [0, -1]]:
+        self.board[row][col] = not self.board[row][col]
+        for row_off, col_off in [(-1, 0), (0, 1), (1, 0), (0, -1)]:
             ro = row + row_off
             co = col + col_off
             if ro >= 0 and ro < self.rows and co >= 0 and co < self.cols:
-                self.board[ro][co] = ~self.board[ro][co]
+                self.board[ro][co] = not self.board[ro][co]
 
     def scramble(self):
         for r in range(self.rows):
@@ -146,9 +146,14 @@ class LightsOutPuzzle(object):
                     frontier.append((moves + [rc_], puz_))
         return None
 
-def create_puzzle(rows, cols):
-    return LightsOutPuzzle(np.zeros((rows, cols), dtype=bool))
 
+def create_puzzle(rows, cols):
+    return LightsOutPuzzle(np.zeros((rows, cols), dtype=bool).tolist())
+
+
+p = create_puzzle(3,3)
+p.perform_move(1,1)
+print(p.get_board())
 
 
 ############################################################
