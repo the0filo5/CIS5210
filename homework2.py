@@ -150,6 +150,7 @@ def create_puzzle(rows, cols):
     return LightsOutPuzzle(np.zeros((rows, cols), dtype=bool))
 
 
+
 ############################################################
 # Section 3: Linear Disk Movement
 ############################################################
