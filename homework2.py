@@ -281,8 +281,6 @@ def solve_distinct_disks(length, n):
     linear_disks = LinearDisks(length, n, direct=True)
     return linear_disks.find_solution()
 
-print(solve_identical_disks(5, 3))
-
 
 ############################################################
 # Section 4: Feedback
