@@ -24,7 +24,7 @@ student_name = "Theophilos Constantinidis"
 
 def num_placements_all(n):
     # out of n^2 board positions pick n and place indistinguishable queens
-    return math.comb(n ** n, n)
+    return math.comb(n ** 2, n)
 
 
 def num_placements_one_per_row(n):
@@ -60,6 +60,21 @@ def n_queens_valid(board):
     return True
 
 
+def n_queens_valid_last(board):
+    # assumes the board configuration is a list of numbers between
+    # where the r-th number designates the column of the queen in row r
+    # board[r] = c, check conflicts involving the last queen only
+    r2 = len(board) - 1
+    c2 = board[r2]
+    for r1 in range(r2):
+        c1 = board[r1]
+        if c1 == c2:                      # same column
+            return False
+        if abs(c2 - c1) == abs(r2 - r1):  # same diagonal
+            return False
+    return True
+
+
 def n_queens_helper(n, board):
     # when all rows are full we have a valid solution
     # after recursive function has taken n step one for each row
@@ -72,7 +87,7 @@ def n_queens_helper(n, board):
         # place queen in column c in of row = len(board)
         if c not in board:
             board.append(c)
-            if n_queens_valid(board):
+            if n_queens_valid_last(board):
                 yield from n_queens_helper(n, board)
             board.pop()
 
@@ -151,11 +166,6 @@ def create_puzzle(rows, cols):
     return LightsOutPuzzle(np.zeros((rows, cols), dtype=bool).tolist())
 
 
-p = create_puzzle(3,3)
-p.perform_move(1,1)
-print(p.get_board())
-
-
 ############################################################
 # Section 3: Linear Disk Movement
 ############################################################
@@ -173,19 +183,15 @@ def solve_distinct_disks(length, n):
 ############################################################
 
 feedback_question_1 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+It took me about 10 hours.
 """
 
 feedback_question_2 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+The most challenging aspect of the assignment was figuring out what
+the row and cols where in the queen placement when recursion algorithm
+was used.
 """
 
 feedback_question_3 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+I liked the lights out part.   I would not change anything
 """
