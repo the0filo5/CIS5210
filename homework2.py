@@ -68,7 +68,7 @@ def n_queens_valid_last(board):
     c2 = board[r2]
     for r1 in range(r2):
         c1 = board[r1]
-        if c1 == c2:                      # same column
+        if c1 == c2:  # same column
             return False
         if abs(c2 - c1) == abs(r2 - r1):  # same diagonal
             return False
@@ -170,12 +170,118 @@ def create_puzzle(rows, cols):
 # Section 3: Linear Disk Movement
 ############################################################
 
+
+class LinearDisks(object):
+
+    def __init__(self, length, n, direct=False):
+        if direct:
+            self.board = np.arange(1, length + 1)
+        else:
+            self.board = np.ones(length, dtype=int)
+        self.board[n:length] = 0
+        self.length = length
+        self.n = n
+        self.direct = direct
+
+    def get_board(self):
+        return self.board
+
+    def perform_move(self, pos1, pos2):
+        if self.board[pos2] == 0:
+            self.board[pos2] = self.board[pos1]
+            self.board[pos1] = 0
+        else:
+            print(f"Error: Disk from {pos1} to non-zero position {pos2} !")
+            print(self.board)
+
+    def is_solved(self):
+        for pos in range(self.length):
+            if pos < self.length - self.n:
+                if self.board[pos] != 0:
+                    return False
+            else:
+                if self.direct:
+                    if self.board[pos] != self.length - pos:
+                        return False
+                else:
+                    if self.board[pos] != 1:
+                        return False
+        return True
+
+    def copy(self):
+        new_copy = LinearDisks(self.length, self.n, self.direct)
+        new_copy.board = copy.deepcopy(self.board)
+        return new_copy
+
+    def successors(self):
+        for pos in range(self.length):
+            # if not last cell in board
+            if pos < self.length - 1:
+                # if pos has a disk and pos+1 no disk
+                if self.board[pos] > 0 and self.board[pos + 1] == 0:
+                    new_puzzle = self.copy()
+                    new_puzzle.perform_move(pos, pos + 1)
+                    yield (pos, pos + 1), new_puzzle
+            # if not penultimate cell in board with disk in last position
+            if pos < self.length - 2:
+                if (self.board[pos] > 0 and self.board[pos + 1] > 0 and
+                        self.board[pos + 2] == 0):
+                    new_puzzle = self.copy()
+                    new_puzzle.perform_move(pos, pos + 2)
+                    yield (pos, pos + 2), new_puzzle
+            if self.direct:
+                # if second+ pos on the board
+                if pos > 0:
+                    # if pos has a disk and pos-1 no disk
+                    if self.board[pos] > 0 and self.board[pos - 1] == 0:
+                        new_puzzle = self.copy()
+                        new_puzzle.perform_move(pos, pos - 1)
+                        yield (pos, pos - 1), new_puzzle
+                # if third+ position
+                if pos > 1:
+                    # if pos has a disk and pos-1 has a disk but pos-2 no disk
+                    if (self.board[pos] > 0 and self.board[pos - 1] > 0 and
+                            self.board[pos - 2] == 0):
+                        new_puzzle = self.copy()
+                        new_puzzle.perform_move(pos, pos - 2)
+                        yield (pos, pos - 2), new_puzzle
+
+    def find_solution(self):
+        visited = set()
+        frontier = deque()
+        if self.is_solved():
+            return []
+        visited.add(tuple(self.get_board().ravel()))
+
+        for move, puz in self.successors():
+            key = tuple(puz.get_board().ravel())
+            if key not in visited:
+                visited.add(key)
+                frontier.append(([move], puz))
+
+        while frontier:
+            moves, puz = frontier.popleft()
+            if puz.is_solved():
+                return moves
+
+            for move_, puz_ in puz.successors():
+                key = tuple(puz_.get_board().ravel())
+                if key not in visited:
+                    visited.add(key)
+                    frontier.append((moves + [move_], puz_))
+        return None
+
+
 def solve_identical_disks(length, n):
-    pass
+    linear_disks = LinearDisks(length, n, direct=False)
+    return linear_disks.find_solution()
 
 
 def solve_distinct_disks(length, n):
-    pass
+    linear_disks = LinearDisks(length, n, direct=True)
+    return linear_disks.find_solution()
+
+print(solve_identical_disks(5, 3))
 
 
 ############################################################
