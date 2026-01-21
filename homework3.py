@@ -44,7 +44,7 @@ class TilePuzzle(object):
         self.x, self.y = int(coords[0][0]), int(coords[1][0])
         # ccordinates in solution of all tiles in order 0..(n-1)
         self.sol_coords = [(x, y) for x in range(self.rows)
-                             for y in range(self.cols)]
+                           for y in range(self.cols)]
 
     def get_board(self):
         return self.board
@@ -104,7 +104,7 @@ class TilePuzzle(object):
             # calculate next level of next moves
             for move, puz in self.successors():
                 moves.append(move)
-                yield from puz.iddfs_helper(limit-1, moves)
+                yield from puz.iddfs_helper(limit - 1, moves)
                 moves.pop()
 
         return
@@ -131,29 +131,33 @@ class TilePuzzle(object):
 
     # Manhattan Distance
     def distance(self):
-        sum = 0
+        total = 0
         puzzle = np.array(self.board)
         # exclude 0 tile from manhattan distance calculation
-        for i in range(1, self.rows*self.cols):
+        for i in range(1, self.rows * self.cols):
             x, y = np.where(puzzle == i)
             x, y = int(x[0]), int(y[0])
-            sum += (abs(x - self.sol_coords[i][0])
+            total += (abs(x - self.sol_coords[i][0])
                     + abs(y - self.sol_coords[i][1]))
-        return sum
+        return total
 
     # Required
     def find_solution_a_star(self):
         visited = set()
         frontier = PriorityQueue()
+        g_score = dict()
         if self.is_solved():
             return []
-        visited.add(tuple(np.array(self.get_board()).ravel()))
+        key = tuple(np.array(self.get_board()).ravel())
+        visited.add(key)
+        g_score[key] = 0
 
         for rc, puz in self.successors():
             key = tuple(np.array(puz.get_board()).ravel())
-            if key not in visited:
+            if key not in visited or g_score[key] > 1:
                 visited.add(key)
-                frontier.put((puz.distance() + 1, [rc], puz))
+                g_score[key] = 1
+                frontier.put((puz.distance() + g_score[key], [rc], puz))
 
         while not frontier.empty():
             _, moves, puz = frontier.get()
@@ -162,23 +166,18 @@ class TilePuzzle(object):
 
             for rc_, puz_ in puz.successors():
                 key = tuple(np.array(puz_.get_board()).ravel())
-                if key not in visited:
+                if key not in visited or g_score[key] > len(moves) + 1:
                     visited.add(key)
-                    frontier.put((puz_.distance() + len(moves), moves
+                    g_score[key] = len(moves) + 1
+                    frontier.put((puz_.distance() + g_score[key], moves
                                   + [rc_], puz_))
         return None
 
 
-b = [[1,2,3], [4,0,5], [6,7,8]]
+b = [[1, 2, 3], [4, 0, 5], [6, 7, 8]]
 p = TilePuzzle(b)
-solutions = p.find_solutions_iddfs()
-print(list(solutions))
+print(p.find_solution_a_star())
 
-
-b = [[1,2,3], [4,0,5], [6,7,8]]
-p = TilePuzzle(b)
-solution = p.find_solution_a_star()
-print(solution)
 
 ############################################################
 # Section 2: Grid Navigation
@@ -192,12 +191,131 @@ def find_path(start, goal, scene):
 ############################################################
 # Section 3: Linear Disk Movement, Revisited
 ############################################################
+class LinearDisks(object):
+
+    def __init__(self, length, n, direct=False):
+        if direct:
+            self.board = np.arange(1, length + 1)
+        else:
+            self.board = np.ones(length, dtype=int)
+        self.board[n:length] = 0
+        self.length = length
+        self.n = n
+        self.direct = direct
+        # ccordinates in solution of all tiles in order 0..(n-1)
+        self.sol_coords = [self.length - x for x in range(0, self.length)]
+
+
+    def get_board(self):
+        return self.board
+
+    def perform_move(self, pos1, pos2):
+        if self.board[pos2] == 0:
+            self.board[pos2] = self.board[pos1]
+            self.board[pos1] = 0
+        else:
+            print(f"Error: Disk from {pos1} to non-zero position {pos2} !")
+            print(self.board)
+
+    def is_solved(self):
+        for pos in range(self.length):
+            if pos < self.length - self.n:
+                if self.board[pos] != 0:
+                    return False
+            else:
+                if self.direct:
+                    if self.board[pos] != self.length - pos:
+                        return False
+                else:
+                    if self.board[pos] != 1:
+                        return False
+        return True
+
+    def copy(self):
+        new_copy = LinearDisks(self.length, self.n, self.direct)
+        new_copy.board = copy.deepcopy(self.board)
+        return new_copy
+
+    def successors(self):
+        for pos in range(self.length):
+            # if not last cell in board
+            if pos < self.length - 1:
+                # if pos has a disk and pos+1 no disk
+                if self.board[pos] > 0 and self.board[pos + 1] == 0:
+                    new_puzzle = self.copy()
+                    new_puzzle.perform_move(pos, pos + 1)
+                    yield (pos, pos + 1), new_puzzle
+            # if not penultimate cell in board with disk in last position
+            if pos < self.length - 2:
+                if (self.board[pos] > 0 and self.board[pos + 1] > 0 and
+                        self.board[pos + 2] == 0):
+                    new_puzzle = self.copy()
+                    new_puzzle.perform_move(pos, pos + 2)
+                    yield (pos, pos + 2), new_puzzle
+            if self.direct:
+                # if second+ pos on the board
+                if pos > 0:
+                    # if pos has a disk and pos-1 no disk
+                    if self.board[pos] > 0 and self.board[pos - 1] == 0:
+                        new_puzzle = self.copy()
+                        new_puzzle.perform_move(pos, pos - 1)
+                        yield (pos, pos - 1), new_puzzle
+                # if third+ position
+                if pos > 1:
+                    # if pos has a disk and pos-1 has a disk but pos-2 no disk
+                    if (self.board[pos] > 0 and self.board[pos - 1] > 0 and
+                            self.board[pos - 2] == 0):
+                        new_puzzle = self.copy()
+                        new_puzzle.perform_move(pos, pos - 2)
+                        yield (pos, pos - 2), new_puzzle
+
+    # Manhattan Distance
+    def distance(self):
+        total = 0
+        # exclude 0 tile from manhattan distance calculation
+        for i in range(self.n, 0, -1):
+            x = np.where(self.board == i)
+            x = int(x[0][0])
+            total += abs(x - self.sol_coords[i])
+        return total
+
+
+    def find_solution(self):
+        visited = set()
+        frontier = PriorityQueue()
+        g_score = dict()
+        if self.is_solved():
+            return []
+        key = tuple(self.get_board().ravel())
+        visited.add(key)
+        g_score[key] = 0
+
+        for move, puz in self.successors():
+            key = tuple(puz.get_board().ravel())
+            if key not in visited or g_score[key] > 1:
+                visited.add(key)
+                g_score[key] = 1
+                frontier.put((puz.distance() + g_score[key], [move], puz))
+
+        while not frontier.empty():
+            _, moves, puz = frontier.get()
+            if puz.is_solved():
+                return moves
+
+            for move_, puz_ in puz.successors():
+                key = tuple(puz_.get_board().ravel())
+                if key not in visited or g_score[key] > len(moves) + 1:
+                    visited.add(key)
+                    g_score[key] = len(moves) + 1
+                    frontier.put((puz_.distance() + g_score[key], moves
+                                  + [ move_], puz_))
 
 
 def solve_distinct_disks(length, n):
-    pass
+    linear_disks = LinearDisks(length, n, direct=True)
+    return linear_disks.find_solution()
 
-
+print(solve_distinct_disks(5, 3))
 ############################################################
 # Section 4: Feedback
 ############################################################
@@ -205,19 +323,15 @@ def solve_distinct_disks(length, n):
 
 # Just an approximation is fine.
 feedback_question_1 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+It took me about 10 hours.
 """
 
 feedback_question_2 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+The most challenging aspect of the assignment was figuring out how to create
+the generator in the find_solutions_iddfs function.
 """
 
 feedback_question_3 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+I liked the find_solution_a_star implementation challenge.   
+I would not change anything
 """
