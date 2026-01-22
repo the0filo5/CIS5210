@@ -175,18 +175,122 @@ class TilePuzzle(object):
         return None
 
 
-b = [[1, 2, 3], [4, 0, 5], [6, 7, 8]]
-p = TilePuzzle(b)
-print(p.find_solution_a_star())
-
-
 ############################################################
 # Section 2: Grid Navigation
 ############################################################
 
+class GridNavigation(object):
+
+    # Required
+    def __init__(self, start, goal, scene)
+        self.scene = scene
+        self.rows, self.cols = np.array(scene).shape
+        self.goal = goal
+        self.start = start
+        self.x = self.start[0]
+        self.y = self.start[1]
+
+    def get_board(self):
+        return self.scene
+
+    def is_move_valid(self, direction):
+        move_offset = {'up': (-1, 0),
+                       'down': (1, 0),
+                       'left': (0, -1),
+                       'right': (0, 1)
+                       'up-left': (-1, -1),
+                       'down-left': (1, -1),
+                       'up-right': (-1, 1),
+                       'down-right': (1, 1)}
+        # get move offset
+        x_offset, y_offset = move_offset[direction]
+        # calculate the coordinates of tile to be moved
+        x_m, y_m = self.x + x_offset, self.y + y_offset
+        # if coordinates tile off the board dimensions return False
+        if (x_m < 0  # out of bounds
+                or y_m < 0  # out of bounds
+                or x_m >= self.rows  # out of bounds
+                or y_m >= self.cols  # out of bounds
+                or not self.scene[x_m][y_m]):  # obstacle found
+            return False, self.x, self.y
+        return True, x_m, y_m
+
+    def perform_move(self, direction):
+        valid_move, x_m, y_m = self.is_move_valid(direction)
+        if valid_move:
+            # update the zero coordinates
+            self.x, self.y = x_m, y_m
+            return True
+        return False
+
+    def is_solved(self):
+        return (self.x == self.goal[0]) and (self.y == self.goal[1])
+
+    def copy(self):
+        return GridNavigation((self.x, self.y), self.goal, self.scene)
+
+    def successors(self):
+        for move in ['up', 'down', 'left', 'right', 'up-left', 'down-left',
+                     'up-right', 'down-right']:
+            valid_move, x_m, y_m = self.is_move_valid(move)
+            if valid_move:
+                new_puzzle = self.copy()
+                new_puzzle.perform_move(move)
+                yield move, new_puzzle
+
+    # Eucledian Distance
+    def distance(self):
+        total = 0
+        puzzle = np.array(self.scene)
+        # exclude 0 tile from manhattan distance calculation
+        return math.sqrt((self.x - self.goal[0]) ** 2
+                         + (self.y - self.goal[1]) ** 2)
+
+    # Required
+    def find_solution_a_star(self):
+        def printGrid():
+            print()                                                                     visited = set()
+            for i in range(self.rows):                                                  frontier = PriorityQueue()
+                for j in range(self.cols):                                              g_score = dict()
+                    if self.scene[i][j]:                                                if self.is_solved():
+                        if (i,j) in visited:                                                return [self.start]
+                            print("@")                                                  # if goal on an obstacle
+                        else:                                                           if not self.scene[self.goal[0]][self.goal[1]]:
+                            print(".")                                                      return None
+                    else:                                                               # start on an obstacle
+                        if i == self.x and j == self.y:                                 if not self.scene[self.start[0]][self.start[1]]:
+                            print("#")                                                      return None
+                        else:
+                            print("X")                                                  key = (self.x, self.y)
+                print()                                                                 visited.add(key)
+            print()                                                                     g_score[key] = 0
+
+        for move, puz in self.successors():
+            key = (self.x, self.y)
+            if key not in visited or g_score[key] > 1:
+                visited.add(key)
+                g_score[key] = 1
+                frontier.put((puz.distance() + g_score[key], [move], puz))
+                printGrid()
+
+        while not frontier.empty():
+            _, moves, puz = frontier.get()
+            if puz.is_solved():
+                return moves
+            for move_, puz_ in puz.successors():
+                key = (self.x, self.y)
+                if key not in visited or g_score[key] > len(moves) + 1:
+                    visited.add(key)
+                    g_score[key] = len(moves) + 1
+                    frontier.put((puz_.distance() + g_score[key], moves
+                                  + [move_], puz_))
+                    printGrid()
+        return None
+
 
 def find_path(start, goal, scene):
-    pass
+    grid = GridNavigation(start, goal, scene)
+    return grid.find_solution_a_star()
 
 
 ############################################################
@@ -326,6 +430,7 @@ def solve_distinct_disks(length, n):
     linear_disks = LinearDisks(length, n, direct=True)
     return linear_disks.find_solution()
 
+
 ############################################################
 # Section 4: Feedback
 ############################################################
@@ -342,6 +447,6 @@ the generator in the find_solutions_iddfs function.
 """
 
 feedback_question_3 = """
-I liked the find_solution_a_star implementation challenge.   
-I would not change anything
+I liked the find_solution_a_star implementation challenge.
+I would not change anything.
 """
