@@ -246,7 +246,7 @@ class GridNavigation(object):
         return math.sqrt((self.x - self.goal[0]) ** 2
                          + (self.y - self.goal[1]) ** 2)
 
-    # Required
+    # Required A star
     def find_solution_a_star(self):
         def printGrid():
             print()                                                                     visited = set()
