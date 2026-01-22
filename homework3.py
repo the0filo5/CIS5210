@@ -1,6 +1,7 @@
 ############################################################
 # CIS 521: Homework 3
 ############################################################
+import math
 from collections import deque
 from copy import deepcopy
 from queue import PriorityQueue
@@ -138,7 +139,7 @@ class TilePuzzle(object):
             x, y = np.where(puzzle == i)
             x, y = int(x[0]), int(y[0])
             total += (abs(x - self.sol_coords[i][0])
-                    + abs(y - self.sol_coords[i][1]))
+                      + abs(y - self.sol_coords[i][1]))
         return total
 
     # Required
@@ -205,7 +206,6 @@ class LinearDisks(object):
         # ccordinates in solution of all tiles in order 0..(n-1)
         self.sol_coords = [self.length - x for x in range(0, self.length)]
 
-
     def get_board(self):
         return self.board
 
@@ -271,14 +271,25 @@ class LinearDisks(object):
 
     # Manhattan Distance
     def distance(self):
+        """
+        Manhattan distance works for grid puzzles because each move changes
+        distance by 1. In Linear Disk Movement, a single move can advance a
+        disk by 2 (a hop), so summing absolute index differences for all
+        disks can overshoot the true remaining number of moves.
+        So we need to redesign h(n) via a relaxed version of the disk problem.
+        Ignore blocking and assume each disk can always move toward its goal #
+        by up to 2 cells per move. For each disk, compute how far it still
+        needs to travel to its target index and convert that to a minimal
+        number of moves under this relaxation (think “distance divided by 2,
+        rounded up”). Sum over all disks.
+        """
         total = 0
         # exclude 0 tile from manhattan distance calculation
         for i in range(self.n, 0, -1):
             x = np.where(self.board == i)
             x = int(x[0][0])
-            total += abs(x - self.sol_coords[i])
+            total += math.ceil(abs(x - self.sol_coords[i]) / 2.0)
         return total
-
 
     def find_solution(self):
         visited = set()
@@ -308,14 +319,13 @@ class LinearDisks(object):
                     visited.add(key)
                     g_score[key] = len(moves) + 1
                     frontier.put((puz_.distance() + g_score[key], moves
-                                  + [ move_], puz_))
+                                  + [move_], puz_))
 
 
 def solve_distinct_disks(length, n):
     linear_disks = LinearDisks(length, n, direct=True)
     return linear_disks.find_solution()
 
-print(solve_distinct_disks(5, 3))
 ############################################################
 # Section 4: Feedback
 ############################################################
