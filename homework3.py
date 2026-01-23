@@ -182,7 +182,7 @@ class TilePuzzle(object):
 class GridNavigation(object):
 
     # Required
-    def __init__(self, start, goal, scene)
+    def __init__(self, start, goal, scene):
         self.scene = scene
         self.rows, self.cols = np.array(scene).shape
         self.goal = goal
@@ -197,7 +197,7 @@ class GridNavigation(object):
         move_offset = {'up': (-1, 0),
                        'down': (1, 0),
                        'left': (0, -1),
-                       'right': (0, 1)
+                       'right': (0, 1),
                        'up-left': (-1, -1),
                        'down-left': (1, -1),
                        'up-right': (-1, 1),
@@ -211,7 +211,7 @@ class GridNavigation(object):
                 or y_m < 0  # out of bounds
                 or x_m >= self.rows  # out of bounds
                 or y_m >= self.cols  # out of bounds
-                or not self.scene[x_m][y_m]):  # obstacle found
+                or self.scene[x_m][y_m]):  # obstacle found
             return False, self.x, self.y
         return True, x_m, y_m
 
@@ -243,54 +243,68 @@ class GridNavigation(object):
         total = 0
         puzzle = np.array(self.scene)
         # exclude 0 tile from manhattan distance calculation
-        return math.sqrt((self.x - self.goal[0]) ** 2
-                         + (self.y - self.goal[1]) ** 2)
+        return math.hypot(self.x - self.goal[0],
+                          self.y - self.goal[1])
 
     # Required A star
     def find_solution_a_star(self):
-        def printGrid():
-            print()                                                                     visited = set()
-            for i in range(self.rows):                                                  frontier = PriorityQueue()
-                for j in range(self.cols):                                              g_score = dict()
-                    if self.scene[i][j]:                                                if self.is_solved():
-                        if (i,j) in visited:                                                return [self.start]
-                            print("@")                                                  # if goal on an obstacle
-                        else:                                                           if not self.scene[self.goal[0]][self.goal[1]]:
-                            print(".")                                                      return None
-                    else:                                                               # start on an obstacle
-                        if i == self.x and j == self.y:                                 if not self.scene[self.start[0]][self.start[1]]:
-                            print("#")                                                      return None
-                        else:
-                            print("X")                                                  key = (self.x, self.y)
-                print()                                                                 visited.add(key)
-            print()                                                                     g_score[key] = 0
 
+        visited = set()
+        frontier = PriorityQueue()
+        g_score = dict()
+        moves = [self.start]
+
+        def step_cost(a, b) -> float:
+            # Euclidean step length (1 for cardinal, sqrt(2) for diagonal)
+            return math.hypot(b[0] - a[0], b[1] - a[1])
+
+        if self.is_solved():
+            return moves
+        # if goal on an obstacle
+        if self.scene[self.goal[0]][self.goal[1]]:
+            return None
+        if self.scene[self.start[0]][self.start[1]]:
+            return None
+        key = (self.x, self.y)
+        visited.add(key)
+        g_score[key] = 0.0
+        diag = math.sqrt(2)
+
+        # first layers of neighbors
         for move, puz in self.successors():
-            key = (self.x, self.y)
-            if key not in visited or g_score[key] > 1:
+            key = (puz.x, puz.y)
+            cost = step_cost(key, self.start)
+            tentative_g_score = g_score[self.start] + cost
+
+            if tentative_g_score < g_score.get(key, float('inf')):
+                g_score[key] = tentative_g_score
                 visited.add(key)
-                g_score[key] = 1
-                frontier.put((puz.distance() + g_score[key], [move], puz))
-                printGrid()
+                frontier.put(
+                    (g_score[key] + puz.distance(), moves + [key], puz))
 
         while not frontier.empty():
             _, moves, puz = frontier.get()
             if puz.is_solved():
                 return moves
             for move_, puz_ in puz.successors():
-                key = (self.x, self.y)
-                if key not in visited or g_score[key] > len(moves) + 1:
-                    visited.add(key)
-                    g_score[key] = len(moves) + 1
-                    frontier.put((puz_.distance() + g_score[key], moves
-                                  + [move_], puz_))
-                    printGrid()
+                key = (puz_.x, puz_.y)
+                visited.add(key)
+                cost = step_cost(key, moves[-1])
+                tentative_g_score = g_score[moves[-1]] + cost
+                if tentative_g_score < g_score.get(key, float('inf')):
+                    g_score[key] = tentative_g_score
+                    frontier.put((g_score[key] + puz_.distance(),
+                                  moves + [key], puz_))
         return None
 
 
 def find_path(start, goal, scene):
     grid = GridNavigation(start, goal, scene)
     return grid.find_solution_a_star()
+
+
+scene = [[False, False, False], [False, True, False], [False, False, False]]
+print(find_path((0, 0), (2, 1), scene))
 
 
 ############################################################
