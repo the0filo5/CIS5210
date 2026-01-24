@@ -266,21 +266,9 @@ class GridNavigation(object):
         if self.scene[self.start[0]][self.start[1]]:
             return None
         key = (self.x, self.y)   # or key = self.start
-        visited.add(key)
         g_score[key] = 0.0
         diag = math.sqrt(2)
-
-        # first layers of neighbors
-        for move, puz in self.successors():
-            key = (puz.x, puz.y)
-            cost = step_cost(key, self.start)
-            tentative_g_score = g_score[self.start] + cost
-            # visit neighbor with lowest cost until no noe have lower cost
-            # dont visit neighbors with higher score than previous ones
-            if tentative_g_score < g_score.get(key, float('inf')):
-                g_score[key] = tentative_g_score
-                frontier.put(
-                    (g_score[key] + puz.distance(), moves + [key], puz))
+        frontier.put((g_score[key] + self.distance(), [key], self))
 
         while not frontier.empty():
             _, moves, puz = frontier.get()
@@ -298,7 +286,6 @@ class GridNavigation(object):
                     g_score[key] = tentative_g_score
                     frontier.put((g_score[key] + puz_.distance(),
                                   moves + [key], puz_))
-
         return None
 
 
