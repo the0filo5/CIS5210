@@ -252,47 +252,54 @@ class GridNavigation(object):
         visited = set()
         frontier = PriorityQueue()
         g_score = dict()
-        moves = [(self.start[0], self.start[1])]
+        moves = []
+        parent_of = dict()
 
         def step_cost(a, b) -> float:
             # Euclidean step length (1 for cardinal, sqrt(2) for diagonal)
             return math.hypot(b[0] - a[0], b[1] - a[1])
 
+        # if start at goal
         if self.is_solved():
-            return moves
+            return [(self.start[0], self.start[1])]
         # if goal on an obstacle
         if self.scene[self.goal[0]][self.goal[1]]:
             return None
+        # if start on an obstacle
         if self.scene[self.start[0]][self.start[1]]:
             return None
-        key = (self.x, self.y)   # or key = self.start
+        key = (self.x, self.y)
         g_score[key] = 0.0
-        diag = math.sqrt(2)
-        frontier.put((g_score[key] + self.distance(),
-                      g_score[key], [key], self))
+        parent_of[key] = None
+        frontier.put((g_score[key] + self.distance(), key,
+                      g_score[key], self))
 
         while not frontier.empty():
-            _, g, moves, puz = frontier.get()
+            _, _, g, puz = frontier.get()
             current = (puz.x, puz.y)
-            if moves[-1] != current:
-                continue
             if g > g_score.get(current, float("inf")):
                 continue
             if current in visited:
                 continue
             # put in visited when we deque
             visited.add(current)
+            # use parent_of dictionary to avoid storing all the moves
             if puz.is_solved():
-                return moves
+                path = [current]
+                while path[-1] != self.start:
+                    path.append(parent_of[path[-1]])
+                path.reverse()
+                return path
+
             for move_, puz_ in puz.successors():
                 nxt = (puz_.x, puz_.y)
                 cost = step_cost(current, nxt)
                 tentative_g_score = g + cost
                 if tentative_g_score < g_score.get(nxt, float('inf')):
                     g_score[nxt] = tentative_g_score
-                    frontier.put((g_score[nxt] + puz_.distance(),
-                                  g_score[nxt],
-                                  moves + [nxt], puz_))
+                    parent_of[nxt] = current
+                    frontier.put((g_score[nxt] + puz_.distance(), nxt,
+                                  g_score[nxt], puz_))
         return None
 
 
