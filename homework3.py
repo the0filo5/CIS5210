@@ -193,7 +193,7 @@ class GridNavigation(object):
     def get_board(self):
         return self.scene
 
-    def is_move_valid(self, direction):
+    def is_move_valid(self, direction, p):
         move_offset = {'up': (-1, 0),
                        'down': (1, 0),
                        'left': (0, -1),
@@ -205,14 +205,14 @@ class GridNavigation(object):
         # get move offset
         x_offset, y_offset = move_offset[direction]
         # calculate the coordinates of tile to be moved
-        x_m, y_m = self.x + x_offset, self.y + y_offset
+        x_m, y_m = p[0] + x_offset, p[1] + y_offset
         # if coordinates tile off the board dimensions return False
         if (x_m < 0  # out of bounds
                 or y_m < 0  # out of bounds
                 or x_m >= self.rows  # out of bounds
                 or y_m >= self.cols  # out of bounds
                 or self.scene[x_m][y_m]):  # obstacle found
-            return False, self.x, self.y
+            return False, p[0], p[1]
         return True, x_m, y_m
 
     def perform_move(self, direction):
@@ -223,44 +223,38 @@ class GridNavigation(object):
             return True
         return False
 
-    def is_solved(self):
-        return (self.x == self.goal[0]) and (self.y == self.goal[1])
+    def is_solved(self, p):
+        return (p[0] == self.goal[0]) and (p[1] == self.goal[1])
 
     def copy(self):
         return GridNavigation((self.x, self.y), self.goal, self.scene)
 
-    def successors(self):
+    def successors(self, p):
         for move in ['up', 'down', 'left', 'right', 'up-left', 'down-left',
                      'up-right', 'down-right']:
-            valid_move, x_m, y_m = self.is_move_valid(move)
+            valid_move, x_m, y_m = self.is_move_valid(move, p)
             if valid_move:
-                new_puzzle = self.copy()
-                new_puzzle.perform_move(move)
-                yield move, new_puzzle
+                yield x_m, y_m
 
     # Eucledian Distance
-    def distance(self):
-        total = 0
-        puzzle = np.array(self.scene)
-        # exclude 0 tile from manhattan distance calculation
-        return math.hypot(self.x - self.goal[0],
-                          self.y - self.goal[1])
+    def distance(self, p):
+        return math.hypot(p[0] - self.goal[0],
+                          p[1] - self.goal[1])
 
     # Required A star
     def find_solution_a_star(self):
 
-        visited = set()
-        frontier = PriorityQueue()
-        g_score = dict()
-        moves = []
-        parent_of = dict()
+        frontier = PriorityQueue()      # priority queue by f = g + h
+        g_score = dict()                # track the total cost to a tile
+        parent_of = dict()              # track parents to create path
 
         def step_cost(a, b) -> float:
             # Euclidean step length (1 for cardinal, sqrt(2) for diagonal)
             return math.hypot(b[0] - a[0], b[1] - a[1])
 
+        # quick checks for outliers
         # if start at goal
-        if self.is_solved():
+        if self.is_solved(self.start):
             return [(self.start[0], self.start[1])]
         # if goal on an obstacle
         if self.scene[self.goal[0]][self.goal[1]]:
@@ -271,35 +265,36 @@ class GridNavigation(object):
         key = (self.x, self.y)
         g_score[key] = 0.0
         parent_of[key] = None
-        frontier.put((g_score[key] + self.distance(), key,
-                      g_score[key], self))
-
+        # put key/status of puzzle of frontier priority queue
+        frontier.put((g_score[key] + self.distance(key), key, g_score[key]))
+        # as long as priority queue has an element to check
         while not frontier.empty():
-            _, _, g, puz = frontier.get()
-            current = (puz.x, puz.y)
+            _, puz, g = frontier.get()
+            current = (puz[0], puz[1])
+            # check if same current tile put of the priority queue previously
+            # by another state has a lower g_score.  otherwise ignore
             if g > g_score.get(current, float("inf")):
                 continue
-            if current in visited:
-                continue
-            # put in visited when we deque
-            visited.add(current)
             # use parent_of dictionary to avoid storing all the moves
-            if puz.is_solved():
+            if self.is_solved(puz):
                 path = [current]
                 while path[-1] != self.start:
                     path.append(parent_of[path[-1]])
                 path.reverse()
                 return path
 
-            for move_, puz_ in puz.successors():
-                nxt = (puz_.x, puz_.y)
+            # run through all neighbors of puz (current tile in puzzle)
+            # add those that improve their existing g_score or are new
+            # to priority queue using f = g + h
+            for puz_ in self.successors(puz):
+                nxt = (puz_[0], puz_[1])
                 cost = step_cost(current, nxt)
-                tentative_g_score = g + cost
+                tentative_g_score = g_score.get(current, float("inf")) + cost
                 if tentative_g_score < g_score.get(nxt, float('inf')):
                     g_score[nxt] = tentative_g_score
                     parent_of[nxt] = current
-                    frontier.put((g_score[nxt] + puz_.distance(), nxt,
-                                  g_score[nxt], puz_))
+                    frontier.put((g_score[nxt] + self.distance(puz_), nxt,
+                                  g_score[nxt]))
         return None
 
 
