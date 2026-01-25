@@ -18,7 +18,6 @@ import copy
 
 student_name = "Theophilos Constantinidis"
 
-
 ############################################################
 # Section 1: Tile Puzzle
 ############################################################
