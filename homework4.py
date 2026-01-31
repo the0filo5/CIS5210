@@ -94,20 +94,51 @@ class DominoesGame(object):
     def get_random_move(self, vertical):
         return random.choice(self.legal_moves(vertical))
 
-    def evaluate(self, vrt):
-        return (len(self.legal_moves(vrt)) -
-                len(self.legal_moves(not vrt)))
 
     def evaluate(self, vrt):
         return (len(self.legal_moves(vrt)) -
                 len(self.legal_moves(not vrt)))
 
+    def minmax(self, vertical, limit, alpha, beta):
+        # If game in terminal state return -inf player lost
+        if self.game_over(vertical):
+            return -math.inf, 1
+        # Expand the game tree a fixed number of ply (limit) using recursion
+        max_util = -math.inf
+        max_move = None
+        sum_leaves = 0
+        if limit > 0:
+            utilities = []
+            moves = []
+            for move, game in self.successors(vertical):
+                move_coords, util_score, num_leaves = game.get_best_move(
+                    not vertical, limit - 1)
+                # if -util_score > max_util:
+                #    max_util = -util_score
+                #    max_move = move
+                utilities.append(-util_score)
+                moves.append(move)
+                sum_leaves += num_leaves
+                print(limit, limit * "  ", "move: ", move, "by ", vertical,
+                      "score: ", util_score, "max_score: ",
+                      max_util, "max_move: ", max_move, "sum_leaves: ",
+                      sum_leaves)
+            if len(utilities) > 0:
+                max_index = utilities.index(max(utilities))
+                max_move = moves[max_index]
+                max_util = utilities[max_index]
+            else:
+                print(limit * "  ", moves, utilities)
 
+        return max_move, max_util, sum_leaves
 
     def get_best_move(self, vertical, limit):
 
         # Start with the current position as a MAX node.
         # Apply the evaluation function to the leaf positions.
+        if self.game_over(vertical):
+            return None, -math.inf, 1
+
         if limit == 0:
             return None, self.evaluate(vertical), 1
 
@@ -116,15 +147,25 @@ class DominoesGame(object):
         max_move = None
         sum_leaves = 0
         if limit > 0:
+            utilities = []
+            moves = []
             for move, game in self.successors(vertical):
                 move_coords, util_score, num_leaves = game.get_best_move(
                     not vertical, limit - 1)
-                if -util_score > max_util:
-                    max_util = -util_score
-                    max_move = move
+                #if -util_score > max_util:
+                #    max_util = -util_score
+                #    max_move = move
+                utilities.append(-util_score)
+                moves.append(move)
                 sum_leaves += num_leaves
                 print(limit, limit*"  ", "move: ", move, "by ", vertical, "score: ", util_score, "max_score: ",
                       max_util, "max_move: ", max_move, "sum_leaves: ", sum_leaves)
+            if len(utilities) > 0:
+                max_index = utilities.index(max(utilities))
+                max_move = moves[max_index]
+                max_util = utilities[max_index]
+            else:
+                print(limit*"  ",moves, utilities)
 
         return max_move, max_util, sum_leaves
 
