@@ -94,80 +94,59 @@ class DominoesGame(object):
     def get_random_move(self, vertical):
         return random.choice(self.legal_moves(vertical))
 
-
     def evaluate(self, vrt):
         return (len(self.legal_moves(vrt)) -
                 len(self.legal_moves(not vrt)))
 
-    def minmax(self, vertical, limit, alpha, beta):
-        # If game in terminal state return -inf player lost
+    def minmax(self, root_vertical, vertical, limit, alpha, beta, is_max):
+        # leaf = terminal OR limit cutoff
         if self.game_over(vertical):
-            return -math.inf, 1
-        # Expand the game tree a fixed number of ply (limit) using recursion
-        max_util = -math.inf
+            return None, self.evaluate(root_vertical), 1
+        if limit == 0:
+            return None, self.evaluate(root_vertical), 1
+
         max_move = None
         sum_leaves = 0
-        if limit > 0:
-            utilities = []
-            moves = []
-            for move, game in self.successors(vertical):
-                move_coords, util_score, num_leaves = game.get_best_move(
-                    not vertical, limit - 1)
-                # if -util_score > max_util:
-                #    max_util = -util_score
-                #    max_move = move
-                utilities.append(-util_score)
-                moves.append(move)
-                sum_leaves += num_leaves
-                print(limit, limit * "  ", "move: ", move, "by ", vertical,
-                      "score: ", util_score, "max_score: ",
-                      max_util, "max_move: ", max_move, "sum_leaves: ",
-                      sum_leaves)
-            if len(utilities) > 0:
-                max_index = utilities.index(max(utilities))
-                max_move = moves[max_index]
-                max_util = utilities[max_index]
-            else:
-                print(limit * "  ", moves, utilities)
 
+        # Expand the game tree a fixed number of ply (limit) using recursion
+        if is_max:
+            max_util = -math.inf
+        else:
+            max_util = math.inf
+
+        for move, game in self.successors(vertical):
+            score = 0
+            # If game in terminal state return inf for player lost
+            move_coords, util_score, num_leaves = game.minmax(root_vertical,
+                                                              not vertical,
+                                                              limit - 1, alpha,
+                                                              beta, not is_max)
+            score = util_score
+            sum_leaves += num_leaves
+            if ((is_max and score > max_util) or
+                    (not is_max and score < max_util)):
+                max_util = score
+                max_move = move
+            if is_max:
+                alpha = max(max_util, alpha)
+                if alpha >= beta:
+                    break  # return max_move, max_util, sum_leaves
+            else:
+                beta = min(max_util, beta)
+                if beta <= alpha:
+                    break  # return max_move, max_util, sum_leaves
+
+            # print(limit, limit * "  ", "move: ", move, "by ", vertical,
+            #      "score: ", score, "max_score: ",
+            #      max_util, "max_move: ", max_move, "sum_leaves: ",
+            #      sum_leaves)
         return max_move, max_util, sum_leaves
 
     def get_best_move(self, vertical, limit):
 
         # Start with the current position as a MAX node.
-        # Apply the evaluation function to the leaf positions.
-        if self.game_over(vertical):
-            return None, -math.inf, 1
-
-        if limit == 0:
-            return None, self.evaluate(vertical), 1
-
-        # Expand the game tree a fixed number of ply (limit) using recursion
-        max_util = -math.inf
-        max_move = None
-        sum_leaves = 0
-        if limit > 0:
-            utilities = []
-            moves = []
-            for move, game in self.successors(vertical):
-                move_coords, util_score, num_leaves = game.get_best_move(
-                    not vertical, limit - 1)
-                #if -util_score > max_util:
-                #    max_util = -util_score
-                #    max_move = move
-                utilities.append(-util_score)
-                moves.append(move)
-                sum_leaves += num_leaves
-                print(limit, limit*"  ", "move: ", move, "by ", vertical, "score: ", util_score, "max_score: ",
-                      max_util, "max_move: ", max_move, "sum_leaves: ", sum_leaves)
-            if len(utilities) > 0:
-                max_index = utilities.index(max(utilities))
-                max_move = moves[max_index]
-                max_util = utilities[max_index]
-            else:
-                print(limit*"  ",moves, utilities)
-
-        return max_move, max_util, sum_leaves
+        return self.minmax(vertical, vertical, limit, -math.inf, math.inf,
+                           True)
 
 
 b = [[False] * 3 for i in range(3)]
@@ -176,6 +155,12 @@ print(g.get_best_move(True, 1))
 # ((0, 1), 2, 6)
 print(g.get_best_move(True, 4))
 # ((0, 1), 3, 10)
+
+g.perform_move(0, 1, True)
+print(g.get_best_move(False, 1))
+# ((2, 0), -3, 2)
+print(g.get_best_move(False, 2))
+# ((2, 0), -2, 5)
 
 ############################################################
 # Section 2: Feedback
