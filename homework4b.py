@@ -98,38 +98,55 @@ class DominoesGame(object):
         return (len(self.legal_moves(vrt)) -
                 len(self.legal_moves(not vrt)))
 
-    def minmax(self, vertical, limit, alpha, beta):
+    def minmax(self, root_vertical, vertical, limit, alpha, beta, is_max):
         # leaf = terminal OR limit cutoff
         if self.game_over(vertical):
-            return None, self.evaluate(vertical), 1
+            return None, self.evaluate(root_vertical), 1
         if limit == 0:
-            return None, self.evaluate(vertical), 1
+            return None, self.evaluate(root_vertical), 1
 
         max_move = None
         sum_leaves = 0
 
         # Expand the game tree a fixed number of ply (limit) using recursion
-        max_util = -math.inf
+        if is_max:
+            max_util = -math.inf
+        else:
+            max_util = math.inf
 
         for move, game in self.successors(vertical):
+            score = 0
             # If game in terminal state return inf for player lost
-            move_coords, util_score, num_leaves = game.minmax(not vertical,
-                                                              limit - 1, -beta,
-                                                              -alpha)
-            score = -util_score
+            move_coords, util_score, num_leaves = game.minmax(root_vertical,
+                                                              not vertical,
+                                                              limit - 1, alpha,
+                                                              beta, not is_max)
+            score = util_score
             sum_leaves += num_leaves
-            if score > max_util:
+            if ((is_max and score > max_util) or
+                    (not is_max and score < max_util)):
                 max_util = score
                 max_move = move
-            alpha = max(max_util, alpha)
-            if alpha >= beta:
-                return max_move, max_util, sum_leaves
+            if is_max:
+                alpha = max(max_util, alpha)
+                if max_util >= beta:
+                    return max_move, max_util, sum_leaves
+            else:
+                beta = min(max_util, beta)
+                if max_util <= alpha:
+                    return max_move, max_util, sum_leaves
+
+            # print(limit, limit * "  ", "move: ", move, "by ", vertical,
+            #      "score: ", score, "max_score: ",
+            #      max_util, "max_move: ", max_move, "sum_leaves: ",
+            #      sum_leaves)
         return max_move, max_util, sum_leaves
 
     def get_best_move(self, vertical, limit):
 
         # Start with the current position as a MAX node.
-        return self.minmax(vertical, limit, -math.inf, math.inf)
+        return self.minmax(vertical, vertical, limit, -math.inf, math.inf,
+                           True)
 
 
 b = [[False] * 3 for i in range(3)]
