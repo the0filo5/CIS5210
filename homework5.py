@@ -171,54 +171,50 @@ class Sudoku(object):
         if self.is_dead_end():
             return False, self.board
 
-        sudoku = self.copy()
-
-        # count all the cells with multiple choices to find the ones
-        # with the fewer guess options and most occurences in tail cells
-        # priority queue will use #choices, 24-#occurences as the priority
         cell_priority = {i: [] for i in range(2, 10)}
-        guess_queue = PriorityQueue()
         min_choices = 9
         max_choices = 0
-        for head in sudoku.CELLS:
-            n = len(sudoku.board[head])
+
+        for head in self.CELLS:
+            n = len(self.board[head])
             if n <= 1:
                 continue
-            if min_choices >= n:
+            if n < min_choices:
                 min_choices = n
-            if max_choices >= n:
-                max_choices = n
             cell_priority[n].append(head)
 
-        found_elsewhere = False
+        # for speed check cells with lower number of choices first
+        for choice_num in sorted(k for k in cell_priority if k >= min_choices):
+            guess_queue = PriorityQueue()
 
-        for choice_num in range(min_choices, max_choices + 1):
             for head in cell_priority[choice_num]:
-                n = len(sudoku.board[head])
-                # only cells with multiple choices
+                n = len(self.board[head])
                 if n <= 1:
                     continue
-                neighbors = set(self.ARCS_DICT_BLK[head]) \
-                            | set(self.ARCS_DICT_ROW[head]) \
-                            | set(self.ARCS_DICT_COL[head])
 
-                for v in sudoku.board[head]:
+                neighbors = (set(self.ARCS_DICT_BLK[head]) |
+                             set(self.ARCS_DICT_ROW[head]) |
+                             set(self.ARCS_DICT_COL[head]))
+
+                for v in self.board[head]:
                     occurs = 0
                     for cell in neighbors:
-                        if v in sudoku.board[cell]:
-                            occurs = occurs + 1
+                        if v in self.board[cell]:
+                            occurs += 1
                     guess_queue.put((n, 24 - occurs, v, head))
-                    found_elsewhere = True
 
-            if found_elsewhere:
+            # try all guesses from this queue
+            while not guess_queue.empty():
                 n, prio, v, h = guess_queue.get()
-                print("guess ", h, " = ", v, n, prio)
-                sudoku.board[h] = [v]
-                sudoku.infer_improved()
-                found, board = sudoku.guessHelper()
+                print("guess", h, "=", v, n, prio)
+
+                attempt = self.copy()
+                attempt.board[h] = [v]
+                attempt.infer_improved()
+
+                found, board = attempt.guessHelper()
                 if found:
                     return True, board
-                sudoku = self.copy()
 
         return False, self.board
 
