@@ -82,11 +82,13 @@ def read_board(path):
     puzzle = dict()
     with open(path, "r") as f:
         for i, line in enumerate(f):
-            for j, val in enumerate(line[:-1]):
+            for j, val in enumerate(line):
+                if val == "\n" or val == '\r':
+                    continue
                 if val == "*":
                     puzzle[(i, j)] = set(range(1, 10))
                 else:
-                    puzzle[(i, j)] = set([int(val)], )
+                    puzzle[(i, j)] = set([int(val)])
     return puzzle
 
 
@@ -135,34 +137,31 @@ class Sudoku(object):
         return any(len(self.board[cell]) == 0 for cell in self.CELLS)
 
     def infer_improved(self):
-        self.infer_ac3()
-        # check all the cells with more than one choice
-        for head in self.CELLS:
-            n = len(self.board[head])
-            if n <= 1:
-                continue
 
-            # occurs = dict()
-            found_hidden_single = False
-            for v in self.board[head]:
-                for LIST in [self.ARCS_DICT_BLK[head],
-                             self.ARCS_DICT_ROW[head],
-                             self.ARCS_DICT_COL[head]]:
-                    found_elsewhere = False
-                    for cell in LIST:
-                        if v in self.board[cell]:
-                            found_elsewhere = True
+        # check all the cells with more than one choice
+        changed = True
+        while changed:
+            changed = False
+            self.infer_ac3()
+            # restart loop everytime a hidden single is found below
+            for head in self.CELLS:
+                n = len(self.board[head])
+                if n <= 1:
+                    continue
+                # made it a tuple so don't iterate board while changing it
+                for v in tuple(self.board[head]):
+                    for LIST in [self.ARCS_DICT_BLK[head],
+                                 self.ARCS_DICT_ROW[head],
+                                 self.ARCS_DICT_COL[head]]:
+                        if all(v not in self.board[cell] for cell in LIST):
+                            self.board[head] = {v}
+                            changed = True
                             break
-                            # occurs[v] = occurs.get(v, 0) + 1
-                    # if len(occurs) == 0:
-                    # v not found in any cell of at least one of the LISTs
-                    if not found_elsewhere:
-                        self.board[head] = [v]
-                        self.infer_ac3()
-                        found_hidden_single = True
-                        break  # breaks LIST loop
-                if found_hidden_single:
-                    break  # breaks v loop
+                if changed:
+                    break
+            if changed:
+                break
+
 
     def guessHelper(self):
 
@@ -173,7 +172,6 @@ class Sudoku(object):
 
         cell_priority = {i: [] for i in range(2, 10)}
         min_choices = 9
-        max_choices = 0
 
         for head in self.CELLS:
             n = len(self.board[head])
@@ -184,9 +182,10 @@ class Sudoku(object):
             cell_priority[n].append(head)
 
         # for speed check cells with lower number of choices first
-        for choice_num in sorted(k for k in cell_priority if k >= min_choices):
+        for choice_num in range(min_choices, 10):
+            if not cell_priority[choice_num]:
+                continue
             guess_queue = PriorityQueue()
-
             for head in cell_priority[choice_num]:
                 n = len(self.board[head])
                 if n <= 1:
@@ -206,10 +205,10 @@ class Sudoku(object):
             # try all guesses from this queue
             while not guess_queue.empty():
                 n, prio, v, h = guess_queue.get()
-                print("guess", h, "=", v, n, prio)
+                # print("guess", h, "=", v, n, prio)
 
                 attempt = self.copy()
-                attempt.board[h] = [v]
+                attempt.board[h] = {v}
                 attempt.infer_improved()
 
                 found, board = attempt.guessHelper()
@@ -218,40 +217,24 @@ class Sudoku(object):
 
         return False, self.board
 
+    def infer_with_guessing(self):
+        self.infer_improved()
+        solved, board = self.guessHelper()
+        self.board = board
 
-def infer_with_guessing(self):
-    self.infer_improved()
-    solved, board = self.guessHelper()
-    self.board = board
-
-
-def __print__(self):
-    brd = [['[**********]' for x in range(9)] for y in range(9)]
-    for cell, value in self.board.items():
-        brd[cell[0]][cell[1]] = list(value)
-    for i in range(9):
+    def __print__(self):
+        brd = [['[**********]' for x in range(9)] for y in range(9)]
+        for cell, value in self.board.items():
+            brd[cell[0]][cell[1]] = list(value)
+        for i in range(9):
+            print("-" * 109)
+            print("| ", end=' ')
+            for j in range(9):
+                print(f"{''.join([str(x) for x in brd[i][j]]):9}", end=" | ")
+            print()
         print("-" * 109)
-        print("| ", end=' ')
-        for j in range(9):
-            print(f"{''.join([str(x) for x in brd[i][j]]):9}", end=" | ")
-        print()
-    print("-" * 109)
 
 
-b = read_board("soduku_puzzles\medium4.txt")
-s = Sudoku(b)
-print(s.__print__())
-s.infer_ac3()
-print(s.__print__())
-s.infer_improved()
-print(s.__print__())
-s.infer_with_guessing()
-print(s.__print__())
-'''
-True set([1, 2, 3, 4, 5, 6, 7, 9])
-True set([1, 3, 4, 5, 6, 7, 9])
-False set([1, 3, 4, 5, 6, 7, 9])
-'''
 ############################################################
 # Feedback
 ############################################################
@@ -259,19 +242,15 @@ False set([1, 3, 4, 5, 6, 7, 9])
 
 # Just an approximation is fine.
 feedback_question_1 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+Spend approximately 10 hours
 """
 
 feedback_question_2 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+The most challenging was to find out how to eliminate hidden singles and also
+how to prioritize the guessing values
 """
 
 feedback_question_3 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+I liked the challenge of solving this more complex problem.  Would not change
+anything
 """
