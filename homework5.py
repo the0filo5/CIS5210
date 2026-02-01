@@ -157,11 +157,10 @@ class Sudoku(object):
                             self.board[head] = {v}
                             changed = True
                             break
+                    if changed:
+                        break
                 if changed:
                     break
-            if changed:
-                break
-
 
     def guessHelper(self):
 
