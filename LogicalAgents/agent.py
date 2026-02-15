@@ -4,15 +4,15 @@ from operator import truediv
 from random import shuffle
 from itertools import combinations
 
-from numpy.f2py.symbolic import as_numer_denom
+# from numpy.f2py.symbolic import as_numer_denom
 
 from helper_types import Action, Direction, Percept, Room, PossibleWorld
 from utils import flatten, get_direction, is_facing_wampa, orientation_to_delta
 from typing import List, Dict, Set, Optional
 
 
-# KNOWLEDGE BASE
 class KB:
+
     def __init__(self, agent):
         # set of rooms that are known to exist
         self.all_rooms: Set[Room] = {agent.loc}
@@ -108,7 +108,8 @@ class Agent:
             # adj_no_walls = {r for r in adj if r not in self.KB.walls}
             for neighbor in adj:
                 self.KB.safe_rooms.add(neighbor)
-
+        print("*" * 80)
+        print("Current Position:", self.loc)
         print("ALL PERCEPTS:\n", sensed_percepts)
         print("ALL ROOMS:\n", self.KB.all_rooms)
         print("ALL WALLS:\n", self.KB.walls)
@@ -119,7 +120,7 @@ class Agent:
     @staticmethod
     def enumerate_possible_worlds(
             all_rooms: Set[Room], safe_rooms: Set[Room], walls: Set[Room],
-    ) -> Set[PossibleWorld]:
+            ) -> Set[PossibleWorld]:
         """Return the set of all possible worlds, where a possible world is a
         tuple of (pit_rooms, wampa_room), pit_rooms is a tuple of tuples
         representing possible pit rooms, and wampa_room is a tuple
@@ -162,6 +163,8 @@ class Agent:
             for k in range(0, max_pits + 1):
                 for pits in combinations(pit_rooms, k):
                     possible_worlds.add((frozenset(pits), w))
+        if not possible_worlds:
+            possible_worlds = {(frozenset(), None)}
         print("POSSIBLE WORLDS:\n", possible_worlds)
         return possible_worlds
 
@@ -213,7 +216,7 @@ class Agent:
         return stench_in_visited_neighbor
 
     def find_model_of_KB(self, possible_worlds: Set[PossibleWorld]) -> Set[
-        PossibleWorld]:
+            PossibleWorld]:
         """Return the subset of all possible worlds consistent with KB.
         possible_worlds is a set of tuples (pit_rooms, wampa_room),
         pit_rooms is a set of tuples of possible pit rooms,
@@ -240,7 +243,7 @@ class Agent:
     @staticmethod
     def find_model_of_query(
             query: str, room: Room, possible_worlds: Set[PossibleWorld]
-    ) -> Set[PossibleWorld]:
+            ) -> Set[PossibleWorld]:
         """Where query can be "pit_in_room", "wampa_in_room", "no_pit_in_room"
         or "no_wampa_in_room",filter the set of worlds
         according to the query and room."""
@@ -380,23 +383,16 @@ class Agent:
         # perform an 180 degree turn and move forward
         if self.has_luke:
             if self.loc == (0, 0):
-                return [Action.CLIMB]  # exit
-            if forward_room in self.KB.visited_rooms:
-                safe_actions.append(Action.FORWARD)  # go back to rooms
-            else:
-                safe_actions.append(Action.RIGHT)  # turn until find room
-            return safe_actions
+                safe_actions.append(Action.CLIMB)  # exit
         if self.KB.luke is not None and self.loc == self.KB.luke:
             safe_actions.append(Action.GRAB)
-            return safe_actions
-        if self.KB.wampa is not None and forward_room == self.KB.wampa \
-                and self.has_arrow:
-            safe_actions = [Action.SHOOT]
-            return safe_actions
+        if self.KB.wampa is not None and forward_room == self.KB.wampa and\
+                self.blaster:
+            safe_actions.append(Action.SHOOT)
         if forward_room in self.KB.safe_rooms:
             safe_actions.append(Action.FORWARD)
         safe_actions.append(Action.LEFT)
-
+        safe_actions.append(Action.RIGHT)
         return safe_actions
 
     def choose_next_action(self) -> Action:
@@ -414,12 +410,18 @@ class Agent:
 
 
 # Approximately how many hours did you spend on this assignment?
-feedback_question_1 = """..."""
+feedback_question_1 = """
+10 hours
+"""
 
 # Which aspects of this assignment did you find most challenging?
 # Were there any significant stumbling blocks?
-feedback_question_2 = """..."""
+feedback_question_2 = """
+the forward and backward inference
+"""
 
 # Which aspects of this assignment did you like?
 # Is there anything you would have changed?
-feedback_question_3 = """..."""
+feedback_question_3 = """
+found it very confusing without adequate explanation
+"""
