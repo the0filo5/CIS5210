@@ -238,6 +238,8 @@ class Agent:
             if ok:
                 consistent_worlds.add((pit_rooms, wampa_room))
 
+        print("-" * 80)
+        print("Test KB Worlds:\n", consistent_worlds)
         return consistent_worlds
 
     @staticmethod
