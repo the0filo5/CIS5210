@@ -190,13 +190,13 @@ def run_game(scenario):
         w.agent.inference_algorithm()
         action = w.agent.choose_next_action()
         w.take_action(action)
-        # print(action)
-        # visualize_world(w, w.agent.loc, w.agent.direction)
+        print(action)
+        visualize_world(w, w.agent.loc, w.agent.direction)
 
-    # print(w.agent.score)
-    # print(w.agent.KB.safe_rooms)
-    # print(w.agent.KB.visited_rooms | w.agent.KB.walls)
-    # print(w.agent.KB)
+    print(w.agent.score)
+    print(w.agent.KB.safe_rooms)
+    print(w.agent.KB.visited_rooms | w.agent.KB.walls)
+    print(w.agent.KB)
     return w.game_score, w.saved_luke, w.agent_loc
 
 
