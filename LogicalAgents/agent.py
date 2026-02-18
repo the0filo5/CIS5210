@@ -3,7 +3,7 @@ import heapq
 from operator import truediv
 from random import shuffle
 from itertools import combinations
-
+import random
 # from numpy.f2py.symbolic import as_numer_denom
 
 from helper_types import Action, Direction, Percept, Room, PossibleWorld
@@ -19,8 +19,9 @@ class KB:
         # set of rooms that are known to be safe
         self.safe_rooms: Set[Room] = {agent.loc}
         # set of visited rooms (x, y)
-        self.visited_rooms: Set[Room] = {agent.loc}
-        #
+        self.visited_rooms: Set[(Direction, Room)] = {(agent.direction, agent.loc)
+        self.visited_room_count: Dict[(Direction, Room), int] = dict()
+        self.visited_room_count[(agent.direction, agent.loc)] = 1
         # set of rooms where stench has been perceived
         self.stench: Set[Room] = set()
         # set of rooms where breeze has been perceived
@@ -78,7 +79,7 @@ class Agent:
         # set of rooms that are known to exist
         self.KB.all_rooms.add(current_location)
         # set of visited rooms (x, y)
-        self.KB.visited_rooms.add(current_location)
+        self.KB.visited_rooms.add((self.direction, current_location))
         # set in safe rooms (x, y)
         self.KB.safe_rooms.add(current_location)
         safe_neighbors = True
@@ -95,6 +96,9 @@ class Agent:
             if percept == Percept.BUMP:
                 self.KB.bump[current_location] = self.direction
                 self.infer_wall_locations()
+                for wall in self.KB.walls:
+                    if wall in self.KB.safe_rooms:
+                        self.KB.safe_rooms.remove(wall)
             if percept == Percept.GASP:
                 self.KB.gasp = True  # True if gasp has been perceived
             if percept == Percept.SCREAM:
@@ -107,7 +111,8 @@ class Agent:
         if safe_neighbors:
             # adj_no_walls = {r for r in adj if r not in self.KB.walls}
             for neighbor in adj:
-                self.KB.safe_rooms.add(neighbor)
+                if neighbor not in self.KB.walls:
+                    self.KB.safe_rooms.add(neighbor)
         print("*" * 80)
         print("Current Position:", self.loc)
         print("ALL PERCEPTS:\n", sensed_percepts)
@@ -120,7 +125,7 @@ class Agent:
     @staticmethod
     def enumerate_possible_worlds(
             all_rooms: Set[Room], safe_rooms: Set[Room], walls: Set[Room],
-            ) -> Set[PossibleWorld]:
+    ) -> Set[PossibleWorld]:
         """Return the set of all possible worlds, where a possible world is a
         tuple of (pit_rooms, wampa_room), pit_rooms is a tuple of tuples
         representing possible pit rooms, and wampa_room is a tuple
@@ -184,7 +189,8 @@ class Agent:
             if adjacent_room in self.KB.walls:
                 continue
             # if room visited and has no breeze then not a pit
-            if adjacent_room in self.KB.visited_rooms:
+            visited_rooms = [r for d, r in self.KB.visited_rooms]
+            if adjacent_room in visited_rooms:
                 if adjacent_room not in self.KB.breeze:
                     return False
                 else:
@@ -208,7 +214,8 @@ class Agent:
             if adjacent_room in self.KB.walls:
                 continue
             # if room visited and has no stench then not a wampa
-            if adjacent_room in self.KB.visited_rooms:
+            visited_rooms = [r for d, r in self.KB.visited_rooms]
+            if adjacent_room in visited_rooms:
                 if adjacent_room not in self.KB.stench:
                     return False
                 else:
@@ -230,6 +237,10 @@ class Agent:
                 continue
 
             ok = True
+            if not pit_rooms:
+                if not self.pit_room_is_consistent_with_KB(None):
+                    ok = False
+
             for pit_room in pit_rooms:
                 if not self.pit_room_is_consistent_with_KB(pit_room):
                     ok = False
@@ -245,7 +256,7 @@ class Agent:
     @staticmethod
     def find_model_of_query(
             query: str, room: Room, possible_worlds: Set[PossibleWorld]
-            ) -> Set[PossibleWorld]:
+    ) -> Set[PossibleWorld]:
         """Where query can be "pit_in_room", "wampa_in_room", "no_pit_in_room"
         or "no_wampa_in_room",filter the set of worlds
         according to the query and room."""
@@ -301,7 +312,8 @@ class Agent:
         #  If there is no breeze or stench in current location,
         #  infer that the adjacent rooms are safe.
         sensed_percepts = self.world.get_percepts()
-        print("Sensed percepts @ ", self.loc, "ARE:", sensed_percepts)
+        print("Sensed percepts @ ", self.loc, self.direction, "ARE:",
+              sensed_percepts)
         if Percept.STENCH not in sensed_percepts and \
                 Percept.BREEZE not in sensed_percepts:
             for neighbor in Agent.adjacent_rooms(self.loc):
@@ -310,6 +322,9 @@ class Agent:
         if Percept.BUMP in sensed_percepts:
             self.KB.bump[self.loc] = self.direction
             self.infer_wall_locations()
+            for wall in self.KB.walls:
+                if wall in self.KB.safe_rooms:
+                    self.KB.safe_rooms.remove(wall)
         # Infer Luke's location given gasp percept.
         if Percept.GASP in sensed_percepts:
             self.KB.gasp = True  # True if gasp has been perceived
@@ -359,7 +374,8 @@ class Agent:
                             'no_wampa_in_room', room, worlds)
                         if model_worlds.issubset(
                                 model_query.intersection(model_qry_w)):
-                            if room in self.KB.safe_rooms:
+                            if room in self.KB.safe_rooms or \
+                                    room in self.KB.walls:
                                 continue
                             self.KB.safe_rooms.add(room)
                             change_made = True
@@ -378,6 +394,8 @@ class Agent:
         """Define R2D2's valid and safe next actions based on his current
         location and knowledge of the environment."""
         safe_actions = []
+        left_right_actions = [Action.LEFT, Action.RIGHT]
+        random.shuffle(left_right_actions)
         x, y = self.loc
         dx, dy = orientation_to_delta[self.direction]
         forward_room = (x + dx, y + dy)
@@ -388,13 +406,18 @@ class Agent:
                 safe_actions.append(Action.CLIMB)  # exit
         if self.KB.luke is not None and self.loc == self.KB.luke:
             safe_actions.append(Action.GRAB)
-        if self.KB.wampa is not None and forward_room == self.KB.wampa and\
+        if self.KB.wampa is not None and forward_room == self.KB.wampa and \
                 self.blaster:
             safe_actions.append(Action.SHOOT)
-        if forward_room in self.KB.safe_rooms:
+        sensed_percepts = self.world.get_percepts()
+        if Percept.STENCH not in sensed_percepts and \
+                Percept.BREEZE not in sensed_percepts and \
+                Percept.BUMP not in sensed_percepts:
             safe_actions.append(Action.FORWARD)
-        safe_actions.append(Action.LEFT)
-        safe_actions.append(Action.RIGHT)
+        elif forward_room in self.KB.safe_rooms:
+            safe_actions.append(Action.FORWARD)
+        safe_actions.append(left_right_actions[0])
+        safe_actions.append(left_right_actions[1])
         return safe_actions
 
     def choose_next_action(self) -> Action:
@@ -407,6 +430,17 @@ class Agent:
         or as sophisticated (optimizing exploration of unvisited states,
         finding shortest paths, etc.) as you like."""
         actions = self.all_safe_next_actions()
+        print("actions:", actions)
+        print("position", self.loc, self.direction)
+        # if room has been visited before with same direction ie not a
+        # trace back action then choose another direction
+        x, y = self.loc
+        dx, dy = orientation_to_delta[self.direction]
+        forward_room = (x + dx, y + dy)
+        for action in actions:
+            if action == Action.FORWARD and \
+                    (self.direction, forward_room) in self.KB.visited_rooms:
+                actions.remove(action)
         # TODO:
         return actions[0]
 
