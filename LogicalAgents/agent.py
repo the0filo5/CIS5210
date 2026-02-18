@@ -19,9 +19,9 @@ class KB:
         # set of rooms that are known to be safe
         self.safe_rooms: Set[Room] = {agent.loc}
         # set of visited rooms (x, y)
-        self.visited_rooms: Set[(Direction, Room)] = {(agent.direction, agent.loc)
-        self.visited_room_count: Dict[(Direction, Room), int] = dict()
-        self.visited_room_count[(agent.direction, agent.loc)] = 1
+        self.visited_rooms: Set[(Direction, Room)] = {(agent.direction,
+                                                       agent.loc)
+        self.visited_room_count:
         # set of rooms where stench has been perceived
         self.stench: Set[Room] = set()
         # set of rooms where breeze has been perceived
