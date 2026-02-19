@@ -1,5 +1,6 @@
 import copy
 import heapq
+import math
 from operator import truediv
 from random import shuffle
 from itertools import combinations
@@ -9,6 +10,7 @@ import random
 from helper_types import Action, Direction, Percept, Room, PossibleWorld
 from utils import flatten, get_direction, is_facing_wampa, orientation_to_delta
 from typing import List, Dict, Set, Optional
+from queue import PriorityQueue
 
 
 class KB:
@@ -20,8 +22,9 @@ class KB:
         self.safe_rooms: Set[Room] = {agent.loc}
         # set of visited rooms (x, y)
         self.visited_rooms: Set[(Direction, Room)] = {(agent.direction,
-                                                       agent.loc)
-        self.visited_room_count:
+                                                       agent.loc)}
+        self.visited_count: Dict[Room, int] = dict()
+        self.visited_count[agent.loc] = 1
         # set of rooms where stench has been perceived
         self.stench: Set[Room] = set()
         # set of rooms where breeze has been perceived
@@ -30,7 +33,6 @@ class KB:
         self.bump: Dict[Room, str] = dict()
         self.gasp: bool = False  # True if gasp has been perceived
         self.scream: bool = False  # True if scream has been perceived
-        #
         # set of rooms (x, y) that are known to be walls
         self.walls: Set[Room] = set()
         # set of rooms (x, y) that are known to be pits
@@ -40,10 +42,17 @@ class KB:
         # room (x, y) that is known to be Luke
         self.luke: Optional[Room] = None
 
+        # AGENT
 
-# AGENT
+
 class Agent:
     WORLD = None
+    MOVE = {
+        (0, 1): Direction.UP,
+        (0, -1): Direction.DOWN,
+        (-1, 0): Direction.LEFT,
+        (1, 0): Direction.RIGHT
+    }
 
     def __init__(self, world):
         self.world = world
@@ -53,6 +62,12 @@ class Agent:
         self.has_luke = False
         self.KB = KB(self)
         Agent.WORLD = world
+
+    @staticmethod
+    def euclidean_distance(p1, p2):
+        x1, y1 = p1
+        x2, y2 = p2
+        return math.hypot(x2 - x1, y2 - y1)
 
     @staticmethod
     def adjacent_rooms(room):
@@ -80,6 +95,8 @@ class Agent:
         self.KB.all_rooms.add(current_location)
         # set of visited rooms (x, y)
         self.KB.visited_rooms.add((self.direction, current_location))
+        self.KB.visited_count[current_location] = self.KB.visited_count.get(
+            current_location, 0) + 1
         # set in safe rooms (x, y)
         self.KB.safe_rooms.add(current_location)
         safe_neighbors = True
@@ -223,7 +240,7 @@ class Agent:
         return stench_in_visited_neighbor
 
     def find_model_of_KB(self, possible_worlds: Set[PossibleWorld]) -> Set[
-            PossibleWorld]:
+        PossibleWorld]:
         """Return the subset of all possible worlds consistent with KB.
         possible_worlds is a set of tuples (pit_rooms, wampa_room),
         pit_rooms is a set of tuples of possible pit rooms,
@@ -405,7 +422,8 @@ class Agent:
             if self.loc == (0, 0):
                 safe_actions.append(Action.CLIMB)  # exit
         if self.KB.luke is not None and self.loc == self.KB.luke:
-            safe_actions.append(Action.GRAB)
+            if not self.has_luke:
+                safe_actions.append(Action.GRAB)
         if self.KB.wampa is not None and forward_room == self.KB.wampa and \
                 self.blaster:
             safe_actions.append(Action.SHOOT)
@@ -432,28 +450,74 @@ class Agent:
         actions = self.all_safe_next_actions()
         print("actions:", actions)
         print("position", self.loc, self.direction)
-        # if room has been visited before with same direction ie not a
-        # trace back action then choose another direction
+
+        # if first action to grab, climb or shoot then execute immediately
+        if actions[0] == Action.GRAB or actions[0] == Action.CLIMB or\
+                actions[0] == Action.SHOOT:
+            return actions[0]
+
+        # put safe neighbors in priority queue based on number of prior visits
+        # if luke not at hand.  if luke at hand head for neighbor with closest
+        # euclidean distance to (0,0)
+        pq = PriorityQueue()
+        for neighbor in Agent.adjacent_rooms(self.loc):
+            # skip out of bounce neighbors that are never visited
+            if (neighbor[0] < 0) or (neighbor[1] < 0) or\
+                (neighbor[0] >= Agent.WORLD.X) or\
+                (neighbor[1] >= Agent.WORLD.Y):
+                continue
+            if neighbor in self.KB.safe_rooms:
+                if not self.has_luke:
+                    pq.put((self.KB.visited_count.get(neighbor, 0), neighbor))
+                else:
+                    pq.put((Agent.euclidean_distance(neighbor, (0, 0)),
+                            neighbor))
+
+        # if no luke, pick neighbor with lowest visits and direct R2D2 there
         x, y = self.loc
-        dx, dy = orientation_to_delta[self.direction]
-        forward_room = (x + dx, y + dy)
-        for action in actions:
-            if action == Action.FORWARD and \
-                    (self.direction, forward_room) in self.KB.visited_rooms:
-                actions.remove(action)
-        # TODO:
+        if not pq.empty():
+            visits, (n_x, n_y) = pq.get()
+            direct = Agent.MOVE[n_x - x, n_y - y]
+            if direct == self.direction:
+                return Action.FORWARD
+            elif self.direction == Direction.DOWN:
+                if direct == Direction.LEFT:
+                    return Action.RIGHT
+                elif direct == Direction.RIGHT or direct == Direction.UP:
+                    return Action.LEFT
+            elif self.direction == Direction.UP:
+                if direct == Direction.LEFT or direct == Direction.DOWN:
+                    return Action.LEFT
+                elif direct == Direction.RIGHT:
+                    return Action.RIGHT
+            elif self.direction == Direction.LEFT:
+                if direct == Direction.UP:
+                    return Action.RIGHT
+                elif direct == Direction.DOWN:
+                    return Action.LEFT
+                elif direct == Direction.RIGHT:
+                    return Action.RIGHT
+            elif self.direction == Direction.RIGHT:
+                if direct == Direction.UP:
+                    return Action.LEFT
+                elif direct == Direction.DOWN:
+                    return Action.RIGHT
+                elif direct == Direction.LEFT:
+                    return Action.LEFT
+
         return actions[0]
 
 
 # Approximately how many hours did you spend on this assignment?
 feedback_question_1 = """
-10 hours
+50 hours
 """
 
 # Which aspects of this assignment did you find most challenging?
 # Were there any significant stumbling blocks?
 feedback_question_2 = """
 the forward and backward inference
+getting the logic to work
 """
 
 # Which aspects of this assignment did you like?
