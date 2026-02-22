@@ -23,6 +23,7 @@ class KB:
         # set of visited rooms (x, y)
         self.visited_rooms: Set[(Direction, Room)] = {(agent.direction,
                                                        agent.loc)}
+        # dictionary with times visiting a room
         self.visited_count: Dict[Room, int] = dict()
         self.visited_count[agent.loc] = 1
         # set of rooms where stench has been perceived
@@ -42,7 +43,8 @@ class KB:
         # room (x, y) that is known to be Luke
         self.luke: Optional[Room] = None
 
-        # AGENT
+
+#   AGENT
 
 
 class Agent:
@@ -100,6 +102,10 @@ class Agent:
         # set in safe rooms (x, y)
         self.KB.safe_rooms.add(current_location)
         safe_neighbors = True
+        # add adjacent rooms - dont check if they are walls
+        adj = Agent.adjacent_rooms(current_location)
+        # adj = {r for r in adj if r not in self.KB.walls}
+        self.KB.all_rooms.update(adj)
         for percept in present_percepts:
             # set of rooms where stench has been perceived
             if percept == Percept.STENCH:
@@ -120,10 +126,7 @@ class Agent:
                 self.KB.gasp = True  # True if gasp has been perceived
             if percept == Percept.SCREAM:
                 self.KB.scream = True  # True if scream has been perceived
-        # add adjacent rooms - dont check if they are walls
-        adj = Agent.adjacent_rooms(current_location)
-        # adj = {r for r in adj if r not in self.KB.walls}
-        self.KB.all_rooms.update(adj)
+
         # if no stench and no breeze then current and adjacent rooms safe
         if safe_neighbors:
             # adj_no_walls = {r for r in adj if r not in self.KB.walls}
@@ -240,7 +243,7 @@ class Agent:
         return stench_in_visited_neighbor
 
     def find_model_of_KB(self, possible_worlds: Set[PossibleWorld]) -> Set[
-        PossibleWorld]:
+            PossibleWorld]:
         """Return the subset of all possible worlds consistent with KB.
         possible_worlds is a set of tuples (pit_rooms, wampa_room),
         pit_rooms is a set of tuples of possible pit rooms,
@@ -331,7 +334,7 @@ class Agent:
         sensed_percepts = self.world.get_percepts()
         print("Sensed percepts @ ", self.loc, self.direction, "ARE:",
               sensed_percepts)
-        if Percept.STENCH not in sensed_percepts and \
+        if (Percept.STENCH not in sensed_percepts or self.KB.scream) and \
                 Percept.BREEZE not in sensed_percepts:
             for neighbor in Agent.adjacent_rooms(self.loc):
                 self.KB.safe_rooms.add(neighbor)
@@ -349,6 +352,53 @@ class Agent:
         # Infer whether the Wampa is alive given scream percept.
         if Percept.SCREAM in sensed_percepts:
             self.KB.scream = True  # True if scream has been perceived
+            self.KB.safe_rooms.add(self.KB.wampa)
+            self.KB.stench = set()
+        if not self.KB.scream and Percept.STENCH in sensed_percepts:
+            # Infer location of wampa from STENCH around a certain room
+            sn = list(self.KB.stench)  # stench locations
+
+            if len(sn) > 1:
+                cands = None
+                X, Y = self.world.X, self.world.Y
+
+                for s in sn:
+                    neigh = set(Agent.adjacent_rooms(s))
+                    neigh -= self.KB.walls
+                    neigh -= self.KB.safe_rooms
+                    neigh -= self.KB.pits
+
+                    # bounds filter
+                    neigh = {r for r in neigh if 0 <= r[0] < X
+                             and 0 <= r[1] < Y}
+
+                    cands = neigh if cands is None else (cands & neigh)
+
+                if cands is not None and len(cands) == 1:
+                    self.KB.wampa = next(iter(cands))
+
+        if Percept.BREEZE in sensed_percepts:
+            # Infer location of pits from BREEZE around a certain room
+            sn = list(self.KB.breeze)  # breeze locations
+
+            if len(sn) > 1:
+                cands = None
+                X, Y = self.world.X, self.world.Y
+
+                for s in sn:
+                    neigh = set(Agent.adjacent_rooms(s))
+                    neigh -= self.KB.walls
+                    neigh -= self.KB.safe_rooms
+                    neigh -= self.KB.pits
+
+                    # bounds filter
+                    neigh = {r for r in neigh if 0 <= r[0] < X
+                             and 0 <= r[1] < Y}
+
+                    cands = neigh if cands is None else (cands & neigh)
+
+                if cands is not None and len(cands) == 1:
+                    self.KB.pits.add(next(iter(cands)))
 
     def backward_chaining_resolution(self):
         """
@@ -396,8 +446,6 @@ class Agent:
                                 continue
                             self.KB.safe_rooms.add(room)
                             change_made = True
-            # if change_made:
-            # break
 
     def inference_algorithm(self):
         """First, make some basic inferences
@@ -428,7 +476,19 @@ class Agent:
                 self.blaster:
             safe_actions.append(Action.SHOOT)
         sensed_percepts = self.world.get_percepts()
-        if Percept.STENCH not in sensed_percepts and \
+        if not self.KB.scream and Percept.STENCH in sensed_percepts:
+            neigh = Agent.adjacent_rooms(self.loc)
+            neigh -= self.KB.walls
+            neigh -= self.KB.safe_rooms
+            neigh -= self.KB.pits
+            # bounds filter
+            neigh = {r for r in neigh if 0 <= r[0] < self.world.X
+                     and 0 <= r[1] < self.world.Y}
+            if len(neigh) == 1:
+                s_room = neigh.pop()
+                if s_room == forward_room:
+                    self.KB.wampa = forward_room
+        elif Percept.STENCH not in sensed_percepts and \
                 Percept.BREEZE not in sensed_percepts and \
                 Percept.BUMP not in sensed_percepts:
             safe_actions.append(Action.FORWARD)
@@ -463,8 +523,8 @@ class Agent:
         for neighbor in Agent.adjacent_rooms(self.loc):
             # skip out of bounce neighbors that are never visited
             if (neighbor[0] < 0) or (neighbor[1] < 0) or\
-                (neighbor[0] >= Agent.WORLD.X) or\
-                (neighbor[1] >= Agent.WORLD.Y):
+                    (neighbor[0] >= Agent.WORLD.X) or\
+                    (neighbor[1] >= Agent.WORLD.Y):
                 continue
             if neighbor in self.KB.safe_rooms:
                 if not self.has_luke:
