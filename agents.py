@@ -19,8 +19,12 @@ class ValueIterationAgent:
             self.values[state] = 0.0
         self.game = game
         self.discount = discount
-
-        # All states except terminal, start, and #
+        self.policy = {}
+        for s in self.game.states:
+            self.policy[s] = self.get_best_policy(s)
+            # actions = sorted(self.game.get_actions(s), key=str)
+            # self.policy[s] = actions[0] if actions else None
+        # All states except terminal, start, and
         print(game.states)
 
         print("\n".join(
@@ -38,7 +42,8 @@ class ValueIterationAgent:
                 if s == s_:
                     print(str(s), str(a), str(s_))
                 else:
-                    print(str(s),str(a),str(s_), " > ", game.get_reward(s, a, s_))
+                    print(str(s),str(a),str(s_), " > ",
+                          game.get_reward(s, a, s_))
 
     def get_value(self, state):
         """Return value V*(s) correspond to state.
@@ -96,6 +101,8 @@ class PolicyIterationAgent(ValueIterationAgent):
     their iteration method. However, if you need to implement helper function
     or override ValueIterationAgent's methods, you can add them as well.
     """
+    def max_abs_diff(self, v1, v2):
+        return max(abs(v1[s] - v2[s]) for s in self.game.states)
 
     def iterate(self):
         """Run single policy iteration.
@@ -103,8 +110,28 @@ class PolicyIterationAgent(ValueIterationAgent):
         |V_{k+1}(s) - V_k(s)| < ε
         """
         epsilon = 1e-6
+        prev_values = dict(self.values)
 
-        ...  # TODO
+        while True:
+            new_values = dict(prev_values)
+            for s in self.game.states:
+                actions = self.game.get_actions(s)
+                if not actions:  # terminal
+                    new_values[s] = 0.0
+                    continue
+                action = self.policy[s]     # fixed π(s)
+                total = 0.0
+                for s_, prob in self.game.get_transitions(s, action).items():
+                    total += prob * (self.game.get_reward(s, action, s_) +
+                                self.discount * prev_values.get(s_, 0.0))
+                new_values[s] = total
+            if self.max_abs_diff(prev_values, new_values) < epsilon:
+                self.values = new_values
+                for s in self.game.states:
+                    self.policy[s] = self.get_best_policy(s)
+                return
+
+            prev_values = new_values
 
 
 # 3. Bridge Crossing Analysis
