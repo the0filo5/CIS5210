@@ -1,9 +1,7 @@
 # Include your imports here, if any are used.
-import numpy as np
-
 from gridworld import Gridworld
 
-student_name = "Type your full name here."
+student_name = "Theophilos Constantinidis"
 
 
 # 1. Value Iteration
@@ -34,16 +32,6 @@ class ValueIterationAgent:
             print(s, ":", end="")
             for a in list(game.get_actions(s)):
                 print(str(a), " > ", game.get_transitions(s, a), end=", ")
-            print()
-        for s in game.states:
-            print(s, ":")
-            for a in list(game.get_actions(s)):
-                s_ = game._do_action(s, a)
-                if s == s_:
-                    print(str(s), str(a), str(s_))
-                else:
-                    print(str(s),str(a),str(s_), " > ",
-                          game.get_reward(s, a, s_))
 
     def get_value(self, state):
         """Return value V*(s) correspond to state.
@@ -61,7 +49,7 @@ class ValueIterationAgent:
         q_total = 0.0
         for s_, prob in self.game.get_transitions(state, action).items():
             q_total += prob * (self.game.get_reward(state, action, s_) +
-                        self.discount * self.get_value(s_))
+                               self.discount * self.get_value(s_))
         return q_total
 
     def get_best_policy(self, state):
@@ -72,8 +60,7 @@ class ValueIterationAgent:
         actions = sorted(self.game.get_actions(state), key=str)
         if not actions:
             return None
-        policies = [self.get_q_value(state, a) for a in actions]
-        return actions[int(np.argmax(policies))]
+        return max(actions, key=lambda a: self.get_q_value(state, a))
 
     def iterate(self):
         """Run single synchronous value iteration using Bellman equation:
@@ -123,7 +110,7 @@ class PolicyIterationAgent(ValueIterationAgent):
                 total = 0.0
                 for s_, prob in self.game.get_transitions(s, action).items():
                     total += prob * (self.game.get_reward(s, action, s_) +
-                                self.discount * prev_values.get(s_, 0.0))
+                                     self.discount * prev_values.get(s_, 0.0))
                 new_values[s] = total
             if self.max_abs_diff(prev_values, new_values) < epsilon:
                 self.values = new_values
@@ -136,40 +123,40 @@ class PolicyIterationAgent(ValueIterationAgent):
 
 # 3. Bridge Crossing Analysis
 def question_3():
-    discount = ...
-    noise = ...
+    discount = 0.9
+    noise = 0.01
     return discount, noise
 
 
 # 4. Policies
 def question_4a():
-    discount = ...
-    noise = ...
-    living_reward = ...
+    discount = 0.9
+    noise = 0.01
+    living_reward = -5
     return discount, noise, living_reward
     # If not possible, return 'NOT POSSIBLE'
 
 
 def question_4b():
-    discount = ...
-    noise = ...
-    living_reward = ...
-    return discount, noise, living_reward
+    discount = 0.9
+    noise = 0.01
+    living_reward = 0
+    return 'NOT POSSIBLE'
     # If not possible, return 'NOT POSSIBLE'
 
 
 def question_4c():
-    discount = ...
-    noise = ...
-    living_reward = ...
+    discount = 0.9
+    noise = 0.2
+    living_reward = 0
     return discount, noise, living_reward
     # If not possible, return 'NOT POSSIBLE'
 
 
 def question_4d():
-    discount = ...
-    noise = ...
-    living_reward = ...
+    discount = 0.9
+    noise = 0.01
+    living_reward = 0
     return discount, noise, living_reward
     # If not possible, return 'NOT POSSIBLE'
 
