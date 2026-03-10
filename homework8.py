@@ -73,16 +73,26 @@ class NgramModel(object):
 
     def random_text(self, token_count):
         new_context = ["<START>" for _ in range(self.n - 1)]
-        for i in range(token_count):
+        pub_context = []
+        i = 0
+        prev_token_count = 0
+        while i < token_count:
             new_token = self.random_token(tuple(new_context[
                                                 i: i + self.n - 1]))
+            print(new_context)
             if new_token == "<END>":
-                new_context.append("<START>")
+                pub_context.append(new_token)
+                token_count = token_count - len(pub_context) + prev_token_count
+                new_context = ["<START>" for _ in range(self.n - 1)]
+                i = -1
+                prev_token_count = len(pub_context)
             elif new_token is None:
-                pass
+                print("found unknown context", new_context[i: i + self.n - 1])
             else:
+                pub_context.append(new_token)
                 new_context.append(new_token)
-        return " ".join(t for t in new_context if t != "<START>")
+            i += 1
+        return " ".join(t for t in pub_context)
 
     def perplexity(self, sentence):
         tokens_ = tokenize(sentence)
@@ -91,7 +101,6 @@ class NgramModel(object):
         for (c, e) in ngrams_:
             prob_sum += math.log(self.prob(c, e))
         return math.exp(-prob_sum / len(ngrams_))
-
 
 def create_ngram_model(n, path):
     model = NgramModel(n)
