@@ -16,8 +16,6 @@ class QLearningAgent:
         self.learning_rate = learning_rate
         self.explore_prob = explore_prob
         self.q_table = dict()
-        self.policy = {}
-        self.values = {}
 
     def get_q_value(self, state, action):
         """Retrieve Q-value from Q-table.
@@ -35,7 +33,8 @@ class QLearningAgent:
         return max(self.get_q_value(state, a) for a in actions)
 
     def get_best_policy(self, state):
-        """Compute the best action to take in the state using Policy Extraction.
+        """Compute the best action to take in the state using Policy
+        Extraction.
         π(s) = argmax_a Q(s,a)
 
         If there are ties, return a random one for better performance.
@@ -59,8 +58,8 @@ class QLearningAgent:
         sample = reward + self.discount * self.get_value(next_state)
         old_q = self.get_q_value(state, action)
         self.q_table[(state, action)] = (
-            (1 - self.learning_rate) * old_q
-            + self.learning_rate * sample
+                (1 - self.learning_rate) * old_q
+                + self.learning_rate * sample
         )
 
     # 2. Epsilon Greedy
@@ -82,9 +81,9 @@ class QLearningAgent:
 
 # 3. Bridge Crossing Revisited
 def question3():
-    epsilon = ...
-    learning_rate = ...
-    return epsilon, learning_rate
+    epsilon = 0.05
+    learning_rate = 0.2
+    return 'NOT POSSIBLE'  # epsilon, learning_rate
     # If not possible, return 'NOT POSSIBLE'
 
 
@@ -97,44 +96,48 @@ class ApproximateQAgent(QLearningAgent):
         Initialize weights table."""
 
         super().__init__(*args)
-        ...  # TODO
+        self.extractor = extractor
+        self.weights = dict()
 
     def get_weight(self, feature):
         """Get weight of a feature.
         Never seen feature should have a weight of 0.
         """
-        return 0  # TODO
+        if feature not in self.weights:
+            self.weights[feature] = 0.0
+        return self.weights[feature]
 
     def get_q_value(self, state, action):
-        """Compute Q value based on the dot product of feature components and weights.
+        """Compute Q value based on the dot product of feature
+        components and weights.
         Q(s,a) = w_1 * f_1(s,a) + w_2 * f_2(s,a) + ... + w_n * f_n(s,a)
         """
-        return 0  # TODO
+        return sum(self.get_weight(f) * v for f, v in
+                   self.extractor(state, action).items())
 
     def update(self, state, action, next_state, reward):
         """Update weights using least-squares approximation.
         Δ = R + γ V(s') - Q(s,a)
         Then update weights: w_i = w_i + α * Δ * f_i(s, a)
         """
-        ...  # TODO
+        delta = (reward + self.discount * self.get_value(next_state)
+                 - self.get_q_value(state, action)
+                 )
+        for (f, v) in self.extractor(state, action).items():
+            self.weights[f] = self.get_weight(
+                f) + self.learning_rate * delta * v
 
 
 # 6. Feedback
 # Just an approximation is fine.
 feedback_question_1 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+I spent about 4 hours
 """
 
 feedback_question_2 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+The PAC man.   No real stumbling blocks
 """
 
 feedback_question_3 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+The learning nature and simplicity of the agent.  Would not change anything.
 """
