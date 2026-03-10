@@ -1,5 +1,6 @@
 # Include your imports here, if any are used.
-from gridworld import Gridworld
+
+# from gridworld import Gridworld
 
 student_name = "Theophilos Constantinidis"
 
@@ -23,6 +24,7 @@ class ValueIterationAgent:
             # actions = sorted(self.game.get_actions(s), key=str)
             # self.policy[s] = actions[0] if actions else None
         # All states except terminal, start, and
+        '''
         print(game.states)
 
         print("\n".join(
@@ -32,6 +34,7 @@ class ValueIterationAgent:
             print(s, ":", end="")
             for a in list(game.get_actions(s)):
                 print(str(a), " > ", game.get_transitions(s, a), end=", ")
+        '''
 
     def get_value(self, state):
         """Return value V*(s) correspond to state.
@@ -138,16 +141,16 @@ def question_4a():
 
 
 def question_4b():
-    discount = 0.9
-    noise = 0.01
-    living_reward = 0
-    return 'NOT POSSIBLE'
+    discount = 0.5
+    noise = 0.4
+    living_reward = -0.5
+    return discount, noise, living_reward
     # If not possible, return 'NOT POSSIBLE'
 
 
 def question_4c():
     discount = 0.9
-    noise = 0.2
+    noise = 0.01
     living_reward = 0
     return discount, noise, living_reward
     # If not possible, return 'NOT POSSIBLE'
@@ -155,16 +158,16 @@ def question_4c():
 
 def question_4d():
     discount = 0.9
-    noise = 0.01
+    noise = 0.4
     living_reward = 0
     return discount, noise, living_reward
     # If not possible, return 'NOT POSSIBLE'
 
 
 def question_4e():
-    discount = ...
-    noise = ...
-    living_reward = ...
+    discount = 1.0
+    noise = 0
+    living_reward = 0.5
     return discount, noise, living_reward
     # If not possible, return 'NOT POSSIBLE'
 
@@ -172,19 +175,17 @@ def question_4e():
 # 5. Feedback
 # Just an approximation is fine.
 feedback_question_1 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+It took me about 5 hours
 """
 
 feedback_question_2 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+The most challenging was understanding how the policy iteration
+differs from value iteration.
+No stumbling road blocks
 """
 
 feedback_question_3 = """
-Type your response here.
-Your response may span multiple lines.
-Do not include these instructions in your response.
+I liked the subsequent questions that explored hoiw the discount,
+noise and living reward affect the optimal policy.
+Would not change anything.
 """
